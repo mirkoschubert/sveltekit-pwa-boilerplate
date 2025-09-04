@@ -98,13 +98,13 @@
         <!-- Features -->
         <Card.Root>
           <Card.Header>
-            <Card.Title class="text-chart-2">Features</Card.Title>
+            <Card.Title class="text-primary">Features</Card.Title>
           </Card.Header>
           <Card.Content>
             <ul class="space-y-2 text-sm text-muted-foreground">
               <li class="flex items-center gap-2">
                 <svg
-                  class="h-4 w-4 text-chart-1"
+                  class="h-4 w-4 text-primary"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -118,7 +118,7 @@
               </li>
               <li class="flex items-center gap-2">
                 <svg
-                  class="h-4 w-4 text-chart-1"
+                  class="h-4 w-4 text-primary"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -132,7 +132,7 @@
               </li>
               <li class="flex items-center gap-2">
                 <svg
-                  class="h-4 w-4 text-chart-1"
+                  class="h-4 w-4 text-primary"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -146,7 +146,7 @@
               </li>
               <li class="flex items-center gap-2">
                 <svg
-                  class="h-4 w-4 text-chart-1"
+                  class="h-4 w-4 text-primary"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -165,7 +165,7 @@
         <!-- Tech Stack -->
         <Card.Root>
           <Card.Header>
-            <Card.Title class="text-chart-3">Tech Stack</Card.Title>
+            <Card.Title class="text-primary">Tech Stack</Card.Title>
           </Card.Header>
           <Card.Content>
             <ul class="space-y-2 text-sm text-muted-foreground">
@@ -211,7 +211,7 @@
             class="block"
           >
             <Card.Header>
-              <Card.Title class="text-chart-4">Svelte 5 Docs</Card.Title>
+              <Card.Title class="text-primary">Svelte 5 Docs</Card.Title>
               <Card.Description>New runes API</Card.Description>
             </Card.Header>
           </a>
@@ -223,7 +223,7 @@
             class="block"
           >
             <Card.Header>
-              <Card.Title class="text-chart-1">shadcn-svelte</Card.Title>
+              <Card.Title class="text-primary">shadcn-svelte</Card.Title>
               <Card.Description>UI components</Card.Description>
             </Card.Header>
           </a>

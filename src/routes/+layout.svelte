@@ -1,8 +1,7 @@
 <script lang="ts">
   import '../app.css'
   import favicon from '$lib/assets/favicon.svg'
-  import PWAPrompts from '$lib/components/PWAPrompts.svelte'
-  import Header from '$lib/components/Header.svelte'
+  import { PWAPrompts, Header } from '$lib/components'
   import { Toaster } from 'svelte-sonner'
   import { ModeWatcher } from 'mode-watcher'
 

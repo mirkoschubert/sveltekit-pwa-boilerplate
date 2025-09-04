@@ -1,8 +1,7 @@
 <script lang="ts">
   import { Button } from '$lib/components/ui/button'
   import { toggleMode } from 'mode-watcher'
-  import Sun from '@lucide/svelte/icons/sun'
-  import Moon from '@lucide/svelte/icons/moon'
+  import { Sun, Moon } from '@lucide/svelte'
 </script>
 
 <header
@@ -29,16 +28,14 @@
       >
         Home
       </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
       <a
-        href="#"
+        href="/about"
         class="text-muted-foreground transition-colors hover:text-foreground"
       >
         About
       </a>
-      <!-- svelte-ignore a11y-invalid-attribute -->
       <a
-        href="#"
+        href="/docs"
         class="text-muted-foreground transition-colors hover:text-foreground"
       >
         Docs
