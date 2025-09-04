@@ -15,7 +15,7 @@
     "test:unit": "vitest",
     "test": "npm run test:unit -- --run && npm run test:e2e",
     "test:e2e": "playwright test",
-    "icons:generate": "pwa-asset-generator static/favicon.svg static/icons --type png --background '#ffffff' --padding '10%' --manifest static/manifest.json --index src/app.html --path-override '/icons/' --icon-only"
+    "icons:generate": "node scripts/generate-pwa-icons.js"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.5",
@@ -41,7 +41,7 @@
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
-    "pwa-asset-generator": "^8.1.1",
+    "sharp": "^0.34.3",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "svelte-sonner": "^1.0.5",
