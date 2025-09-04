@@ -4,57 +4,36 @@
 /// <reference lib="webworker" />
 
 import { build, files, prerendered, version } from '$service-worker'
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 
 const sw = self as unknown as ServiceWorkerGlobalScope
 
-const CACHE_NAME = `sveltekit-pwa-${version}`
+// Create precache manifest with revision based on version
+const precacheList = [...build, ...files, ...prerendered].map((url) => ({
+  url,
+  revision: version
+}))
 
-// All assets in one cache - much simpler!
-const ASSETS = [...build, ...files, ...prerendered]
+console.log('[ServiceWorker] Version:', version)
+console.log('[ServiceWorker] Precaching', precacheList.length, 'assets')
 
-sw.addEventListener('install', (event: ExtendableEvent) => {
-  console.log('[ServiceWorker] Install')
-  console.log('[ServiceWorker] Build files:', build.length)
-  console.log('[ServiceWorker] Static files:', files.length)
-  console.log('[ServiceWorker] Prerendered pages:', prerendered)
+// Use Workbox for robust precaching
+precacheAndRoute(precacheList)
 
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(CACHE_NAME)
+// Clean up outdated caches automatically
+cleanupOutdatedCaches()
 
-      console.log('[ServiceWorker] Caching all assets:', ASSETS.length)
-      await cache.addAll(ASSETS)
-
-      console.log('[ServiceWorker] Cached all assets')
-      sw.skipWaiting()
-    })()
-  )
+sw.addEventListener('install', () => {
+  console.log('[ServiceWorker] Install - skipping waiting immediately')
+  sw.skipWaiting()
 })
 
 sw.addEventListener('activate', (event: ExtendableEvent) => {
-  console.log('[ServiceWorker] Activate')
-
-  event.waitUntil(
-    (async () => {
-      // Delete old caches
-      const cacheNames = await caches.keys()
-      await Promise.all(
-        cacheNames
-          .filter((cacheName) => cacheName !== CACHE_NAME)
-          .map((cacheName) => {
-            console.log('[ServiceWorker] Deleting old cache:', cacheName)
-            return caches.delete(cacheName)
-          })
-      )
-
-      // Take control of all pages
-      sw.clients.claim()
-
-      console.log('[ServiceWorker] Ready to serve from cache')
-    })()
-  )
+  console.log('[ServiceWorker] Activate - taking control')
+  event.waitUntil(sw.clients.claim())
 })
 
+// Custom fetch handler for runtime caching of non-precached requests
 sw.addEventListener('fetch', (event: FetchEvent) => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(sw.location.origin)) {
@@ -66,50 +45,37 @@ sw.addEventListener('fetch', (event: FetchEvent) => {
     return
   }
 
-  // const url = new URL(event.request.url) // Not needed with single cache
-
+  // Let Workbox handle precached requests, we'll handle runtime caching
   event.respondWith(
     (async () => {
-      // Try to get from cache first
-      const cachedResponse = await caches.match(event.request)
-
-      if (cachedResponse) {
-        // If we have a cached version, serve it but also try to update in background
-        if (navigator.onLine) {
-          fetch(event.request)
-            .then((response) => {
-              if (response.ok) {
-                const responseClone = response.clone()
-                caches
-                  .open(CACHE_NAME)
-                  .then((cache) => cache.put(event.request, responseClone))
-              }
-            })
-            .catch(() => {
-              // Network failed, but we have cache
-            })
-        }
-
-        return cachedResponse
+      // First check if Workbox has it precached
+      const precachedResponse = await caches.match(event.request)
+      if (precachedResponse) {
+        return precachedResponse
       }
 
-      // No cache, try network
+      // Runtime caching for non-precached requests
       try {
         const networkResponse = await fetch(event.request)
 
         if (networkResponse.ok) {
-          // Cache successful responses
-          const responseClone = networkResponse.clone()
-          const cache = await caches.open(CACHE_NAME)
-          await cache.put(event.request, responseClone)
+          // Cache successful responses in runtime cache
+          const cache = await caches.open(`runtime-${version}`)
+          cache.put(event.request, networkResponse.clone())
         }
 
         return networkResponse
-      } catch (error) {
-        // Network failed and no cache
-        console.log('[ServiceWorker] Network failed:', error)
+      } catch {
+        // Network failed, try runtime cache
+        const runtimeCached = await caches.match(event.request, {
+          cacheName: `runtime-${version}`
+        })
 
-        // For navigation requests, try to serve a fallback page
+        if (runtimeCached) {
+          return runtimeCached
+        }
+
+        // For navigation requests, try to serve the root page as fallback
         if (event.request.mode === 'navigate') {
           const fallback = await caches.match('/')
           if (fallback) {
@@ -117,7 +83,7 @@ sw.addEventListener('fetch', (event: FetchEvent) => {
           }
         }
 
-        // Return a generic offline response
+        // Return offline response as last resort
         return new Response('Offline', {
           status: 503,
           statusText: 'Service Unavailable',
@@ -131,10 +97,12 @@ sw.addEventListener('fetch', (event: FetchEvent) => {
 // Listen for messages from the client
 sw.addEventListener('message', (event: ExtendableMessageEvent) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[ServiceWorker] Received SKIP_WAITING message')
     sw.skipWaiting()
   }
 
   if (event.data && event.data.type === 'GET_VERSION') {
+    console.log('[ServiceWorker] Sending version:', version)
     event.ports[0].postMessage({ version })
   }
 })

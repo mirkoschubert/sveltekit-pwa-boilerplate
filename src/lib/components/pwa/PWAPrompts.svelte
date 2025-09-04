@@ -13,12 +13,22 @@
       showInstallPrompt = state.isInstallable && !state.isInstalled
       showOfflineBanner = state.isOffline
 
-      // Show update toast instead of banner
+      // Show update toast with version info
       if (state.updateAvailable && !showUpdatePrompt) {
         showUpdatePrompt = true
-        toast('Update available!', {
-          description:
-            'A new version is available. Update for the latest features.',
+
+        const updateMessage =
+          state.currentVersion && state.latestVersion
+            ? `Update available (${state.currentVersion} → ${state.latestVersion})`
+            : 'App update available!'
+
+        const updateDescription =
+          state.currentVersion && state.latestVersion
+            ? `A new version is ready. Update now for the latest features and improvements.`
+            : 'A new version is available. Update for the latest features.'
+
+        toast(updateMessage, {
+          description: updateDescription,
           action: {
             label: 'Update Now',
             onClick: () => handleUpdate()
@@ -37,7 +47,17 @@
   }
 
   async function handleUpdate() {
-    await pwaActions.updateApp()
+    showUpdatePrompt = false
+
+    // Show loading toast
+    toast.loading('Updating app...', {
+      description: 'Please wait while the app updates to the latest version.'
+    })
+
+    // Small delay to show the loading message
+    setTimeout(async () => {
+      await pwaActions.updateApp()
+    }, 500)
   }
 
   function dismissInstall() {
