@@ -86,15 +86,8 @@ export const pwaActions = {
     window.addEventListener('offline', updateOnlineStatus)
     updateOnlineStatus()
 
-    // Register service worker and get version info
+    // Get current version and register service worker with versioned URL
     try {
-      // Register service worker with standard URL (content-based updates)
-      swRegistration =
-        await navigator.serviceWorker.register('/service-worker.js')
-
-      console.log('[PWA] Service worker registered successfully')
-
-      // Get current version after registration
       const versionResponse = await fetch('/_app/version.json')
       const versionData = await versionResponse.json()
       const currentVersion = versionData.version
@@ -102,8 +95,14 @@ export const pwaActions = {
       console.log('[PWA] Initializing with version:', {
         version: currentVersion,
         isInstalled,
-        swRegistered: true
+        swUrl: `/service-worker.js?v=${currentVersion}`
       })
+
+      // Register service worker with versioned URL (forces browser to install new SW)
+      const swUrl = `/service-worker.js?v=${currentVersion}`
+      swRegistration = await navigator.serviceWorker.register(swUrl)
+
+      console.log('[PWA] Service worker registered with version:', currentVersion)
 
       pwaState.update((state) => ({
         ...state,
@@ -128,13 +127,12 @@ export const pwaActions = {
             newWorker.state === 'installed' &&
             navigator.serviceWorker.controller
           ) {
-            console.log('[PWA] Update available - new service worker installed')
-            // Service worker update detected - show update prompt
-            pwaState.update((state) => ({
-              ...state,
-              hasUpdate: true,
-              updateAvailable: true
-            }))
+            console.log('[PWA] Service worker installed - checking for version difference')
+            
+            // Double-check with version comparison before showing update
+            this.checkForUpdates().then(() => {
+              console.log('[PWA] Version check completed after SW installation')
+            })
           }
 
           if (newWorker.state === 'activated') {
@@ -145,12 +143,9 @@ export const pwaActions = {
 
       // Check for existing waiting service worker
       if (swRegistration.waiting) {
-        console.log('[PWA] Update available - service worker waiting')
-        pwaState.update((state) => ({
-          ...state,
-          hasUpdate: true,
-          updateAvailable: true
-        }))
+        console.log('[PWA] Service worker update waiting - checking version')
+        // Only show update if versions actually differ
+        this.checkForUpdates()
       }
 
       // Start periodic version checking
