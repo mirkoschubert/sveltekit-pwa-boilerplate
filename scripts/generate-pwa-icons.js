@@ -110,6 +110,11 @@ async function updateManifest() {
     const manifestContent = await fs.readFile(MANIFEST_FILE, 'utf-8')
     const manifest = JSON.parse(manifestContent)
     
+    // Ensure PWA id is set
+    if (!manifest.id) {
+      manifest.id = '/'
+    }
+    
     // Update icons in manifest - separate any and maskable purposes
     manifest.icons = [
       {

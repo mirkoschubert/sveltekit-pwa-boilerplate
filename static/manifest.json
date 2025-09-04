@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "SvelteKit PWA Boilerplate",
   "short_name": "SvelteKit PWA",
   "description": "A modern PWA boilerplate built with SvelteKit, Svelte 5, and shadcn-svelte",
