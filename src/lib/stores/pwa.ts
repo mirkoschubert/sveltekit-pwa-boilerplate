@@ -86,8 +86,15 @@ export const pwaActions = {
     window.addEventListener('offline', updateOnlineStatus)
     updateOnlineStatus()
 
-    // Get current version and register service worker with version
+    // Register service worker and get version info
     try {
+      // Register service worker with standard URL (content-based updates)
+      swRegistration =
+        await navigator.serviceWorker.register('/service-worker.js')
+
+      console.log('[PWA] Service worker registered successfully')
+
+      // Get current version after registration
       const versionResponse = await fetch('/_app/version.json')
       const versionData = await versionResponse.json()
       const currentVersion = versionData.version
@@ -95,7 +102,7 @@ export const pwaActions = {
       console.log('[PWA] Initializing with version:', {
         version: currentVersion,
         isInstalled,
-        swUrl: `/service-worker.js?v=${currentVersion}`
+        swRegistered: true
       })
 
       pwaState.update((state) => ({
@@ -107,24 +114,28 @@ export const pwaActions = {
         hasUpdate: false
       }))
 
-      // Register service worker with versioned URL
-      const swUrl = `/service-worker.js?v=${currentVersion}`
-      swRegistration = await navigator.serviceWorker.register(swUrl)
-
-      console.log(
-        '[PWA] Service worker registered with version:',
-        currentVersion
-      )
-
-      // Listen for service worker events for debugging purposes only
+      // Listen for service worker updates (content-based detection)
       swRegistration.addEventListener('updatefound', () => {
         const newWorker = swRegistration?.installing
         if (!newWorker) return
 
-        console.log('[PWA] New service worker installing (debug only)')
+        console.log('[PWA] New service worker detected and installing')
 
         newWorker.addEventListener('statechange', () => {
           console.log('[PWA] Service worker state changed:', newWorker.state)
+
+          if (
+            newWorker.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            console.log('[PWA] Update available - new service worker installed')
+            // Service worker update detected - show update prompt
+            pwaState.update((state) => ({
+              ...state,
+              hasUpdate: true,
+              updateAvailable: true
+            }))
+          }
 
           if (newWorker.state === 'activated') {
             console.log('[PWA] New service worker activated')
@@ -132,9 +143,14 @@ export const pwaActions = {
         })
       })
 
-      // Check for existing waiting service worker (debug info only)
+      // Check for existing waiting service worker
       if (swRegistration.waiting) {
-        console.log('[PWA] Service worker update waiting (debug info)')
+        console.log('[PWA] Update available - service worker waiting')
+        pwaState.update((state) => ({
+          ...state,
+          hasUpdate: true,
+          updateAvailable: true
+        }))
       }
 
       // Start periodic version checking

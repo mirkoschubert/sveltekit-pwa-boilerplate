@@ -13,28 +13,17 @@
       showInstallPrompt = state.isInstallable && !state.isInstalled
       showOfflineBanner = state.isOffline
 
-      // Show update toast with version info - only when versions actually differ
-      if (
-        state.updateAvailable &&
-        !showUpdatePrompt &&
-        state.currentVersion !== state.latestVersion
-      ) {
+      // Show update toast when service worker detects updates
+      if (state.updateAvailable && !showUpdatePrompt) {
         showUpdatePrompt = true
 
-        console.log('[PWA] Showing update notification:', {
-          current: state.currentVersion,
-          latest: state.latestVersion
-        })
+        console.log(
+          '[PWA] Showing update notification - service worker update detected'
+        )
 
-        const updateMessage =
-          state.currentVersion && state.latestVersion
-            ? `Update available (${state.currentVersion} → ${state.latestVersion})`
-            : 'App update available!'
-
+        const updateMessage = 'App update available!'
         const updateDescription =
-          state.currentVersion && state.latestVersion
-            ? `A new version is ready. Update now for the latest features and improvements.`
-            : 'A new version is available. Update for the latest features.'
+          'A new version is available. Update now for the latest features and improvements.'
 
         toast(updateMessage, {
           description: updateDescription,

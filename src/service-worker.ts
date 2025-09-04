@@ -8,17 +8,21 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 
 const sw = self as unknown as ServiceWorkerGlobalScope
 
-// Create precache manifest with revision based on version
-const precacheList = [...build, ...files, ...prerendered].map((url) => ({
-  url,
-  revision: version
-}))
-
+// Let Workbox auto-generate revisions based on file content
+// This ensures proper cache busting when files actually change
 console.log('[ServiceWorker] Version:', version)
-console.log('[ServiceWorker] Precaching', precacheList.length, 'assets')
+console.log(
+  '[ServiceWorker] Precaching',
+  build.length + files.length + prerendered.length,
+  'assets'
+)
 
-// Use Workbox for robust precaching
-precacheAndRoute(precacheList)
+// Use Workbox with automatic revision generation
+precacheAndRoute([
+  ...build.map((url) => ({ url, revision: null })), // Workbox will generate revisions
+  ...files.map((url) => ({ url, revision: null })),
+  ...prerendered.map((url) => ({ url, revision: null }))
+])
 
 // Clean up outdated caches automatically
 cleanupOutdatedCaches()
@@ -33,66 +37,11 @@ sw.addEventListener('activate', (event: ExtendableEvent) => {
   event.waitUntil(sw.clients.claim())
 })
 
-// Custom fetch handler for runtime caching of non-precached requests
-sw.addEventListener('fetch', (event: FetchEvent) => {
-  // Skip cross-origin requests
-  if (!event.request.url.startsWith(sw.location.origin)) {
-    return
-  }
+// Note: Workbox precacheAndRoute automatically handles fetch events for precached resources
+// We don't need a custom fetch handler as it would override Workbox functionality
 
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return
-  }
-
-  // Let Workbox handle precached requests, we'll handle runtime caching
-  event.respondWith(
-    (async () => {
-      // First check if Workbox has it precached
-      const precachedResponse = await caches.match(event.request)
-      if (precachedResponse) {
-        return precachedResponse
-      }
-
-      // Runtime caching for non-precached requests
-      try {
-        const networkResponse = await fetch(event.request)
-
-        if (networkResponse.ok) {
-          // Cache successful responses in runtime cache
-          const cache = await caches.open(`runtime-${version}`)
-          cache.put(event.request, networkResponse.clone())
-        }
-
-        return networkResponse
-      } catch {
-        // Network failed, try runtime cache
-        const runtimeCached = await caches.match(event.request, {
-          cacheName: `runtime-${version}`
-        })
-
-        if (runtimeCached) {
-          return runtimeCached
-        }
-
-        // For navigation requests, try to serve the root page as fallback
-        if (event.request.mode === 'navigate') {
-          const fallback = await caches.match('/')
-          if (fallback) {
-            return fallback
-          }
-        }
-
-        // Return offline response as last resort
-        return new Response('Offline', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: { 'Content-Type': 'text/plain' }
-        })
-      }
-    })()
-  )
-})
+// Optional: Add runtime caching for non-precached requests only
+// Workbox will handle all precached assets automatically
 
 // Listen for messages from the client
 sw.addEventListener('message', (event: ExtendableMessageEvent) => {
