@@ -23,5 +23,4 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Generated PWA icons
-/static/icons/
+# Note: PWA icons are now committed to Git as static assets for Vercel deployment
