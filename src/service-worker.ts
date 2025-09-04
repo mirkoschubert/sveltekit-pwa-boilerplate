@@ -15,16 +15,16 @@ const ASSETS = [...build, ...files, ...prerendered]
 sw.addEventListener('install', (event: ExtendableEvent) => {
   console.log('[ServiceWorker] Install')
   console.log('[ServiceWorker] Build files:', build.length)
-  console.log('[ServiceWorker] Static files:', files.length)  
+  console.log('[ServiceWorker] Static files:', files.length)
   console.log('[ServiceWorker] Prerendered pages:', prerendered)
 
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME)
-      
+
       console.log('[ServiceWorker] Caching all assets:', ASSETS.length)
       await cache.addAll(ASSETS)
-      
+
       console.log('[ServiceWorker] Cached all assets')
       sw.skipWaiting()
     })()
@@ -80,7 +80,8 @@ sw.addEventListener('fetch', (event: FetchEvent) => {
             .then((response) => {
               if (response.ok) {
                 const responseClone = response.clone()
-                caches.open(CACHE_NAME)
+                caches
+                  .open(CACHE_NAME)
                   .then((cache) => cache.put(event.request, responseClone))
               }
             })

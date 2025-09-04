@@ -20,10 +20,16 @@
           navigator.serviceWorker
             .register('/service-worker.js')
             .then((registration) => {
-              console.log('[PWA] Service worker registered manually:', registration)
+              console.log(
+                '[PWA] Service worker registered manually:',
+                registration
+              )
             })
             .catch((error) => {
-              console.error('[PWA] Manual service worker registration failed:', error)
+              console.error(
+                '[PWA] Manual service worker registration failed:',
+                error
+              )
             })
         } else {
           console.log('[PWA] Service worker already registered by SvelteKit')

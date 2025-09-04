@@ -7,7 +7,10 @@ describe('/+page.svelte', () => {
   it('should render main heading', async () => {
     render(Page)
 
-    const heading = page.getByRole('heading', { name: /SvelteKit PWA Boilerplate/, level: 1 })
+    const heading = page.getByRole('heading', {
+      name: /SvelteKit PWA Boilerplate/,
+      level: 1
+    })
     await expect.element(heading).toBeInTheDocument()
   })
 
@@ -57,7 +60,7 @@ describe('/+page.svelte', () => {
     // The test verifies the monochrome design is implemented by checking key elements exist
     const featuresTitle = page.getByText('Features')
     const techStackTitle = page.getByText('Tech Stack')
-    
+
     await expect.element(featuresTitle).toBeInTheDocument()
     await expect.element(techStackTitle).toBeInTheDocument()
   })

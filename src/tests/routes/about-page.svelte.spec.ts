@@ -14,7 +14,9 @@ describe('/about/+page.svelte', () => {
   it('should render project description', async () => {
     render(AboutPage)
 
-    const description = page.getByText(/Learn more about this SvelteKit PWA Boilerplate/)
+    const description = page.getByText(
+      /Learn more about this SvelteKit PWA Boilerplate/
+    )
     await expect.element(description).toBeInTheDocument()
   })
 

@@ -7,7 +7,10 @@ describe('/docs/+page.svelte', () => {
   it('should render main heading', async () => {
     render(DocsPage)
 
-    const heading = page.getByRole('heading', { name: 'Documentation', level: 1 })
+    const heading = page.getByRole('heading', {
+      name: 'Documentation',
+      level: 1
+    })
     await expect.element(heading).toBeInTheDocument()
   })
 
