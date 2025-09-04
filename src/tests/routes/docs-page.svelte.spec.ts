@@ -1,7 +1,7 @@
 import { page } from '@vitest/browser/context'
 import { describe, expect, it } from 'vitest'
 import { render } from 'vitest-browser-svelte'
-import DocsPage from './+page.svelte'
+import DocsPage from '../../routes/docs/+page.svelte'
 
 describe('/docs/+page.svelte', () => {
   it('should render main heading', async () => {
