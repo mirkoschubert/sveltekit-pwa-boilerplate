@@ -1,39 +1,37 @@
+/// <reference types="@sveltejs/kit" />
+/// <reference no-default-lib="true"/>
+/// <reference lib="esnext" />
+/// <reference lib="webworker" />
+
 import { build, files, prerendered, version } from '$service-worker'
 
+const sw = self as unknown as ServiceWorkerGlobalScope
+
 const CACHE_NAME = `sveltekit-pwa-${version}`
-const STATIC_CACHE_NAME = `static-${version}`
 
-// Create a unique cache name for this deployment
-// const ASSETS = [...build, ...files, ...prerendered] // Available if needed
+// All assets in one cache - much simpler!
+const ASSETS = [...build, ...files, ...prerendered]
 
-self.addEventListener('install', (event: ExtendableEvent) => {
+sw.addEventListener('install', (event: ExtendableEvent) => {
   console.log('[ServiceWorker] Install')
+  console.log('[ServiceWorker] Build files:', build.length)
+  console.log('[ServiceWorker] Static files:', files.length)  
+  console.log('[ServiceWorker] Prerendered pages:', prerendered)
 
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME)
-      const staticCache = await caches.open(STATIC_CACHE_NAME)
-
-      // Cache app shell
-      await cache.addAll(build)
-
-      // Cache static assets
-      await staticCache.addAll(files)
-
-      // Cache prerendered pages
-      if (prerendered.length > 0) {
-        await cache.addAll(prerendered)
-      }
-
+      
+      console.log('[ServiceWorker] Caching all assets:', ASSETS.length)
+      await cache.addAll(ASSETS)
+      
       console.log('[ServiceWorker] Cached all assets')
-
-      // Force the waiting service worker to become the active service worker
-      self.skipWaiting()
+      sw.skipWaiting()
     })()
   )
 })
 
-self.addEventListener('activate', (event: ExtendableEvent) => {
+sw.addEventListener('activate', (event: ExtendableEvent) => {
   console.log('[ServiceWorker] Activate')
 
   event.waitUntil(
@@ -42,10 +40,7 @@ self.addEventListener('activate', (event: ExtendableEvent) => {
       const cacheNames = await caches.keys()
       await Promise.all(
         cacheNames
-          .filter(
-            (cacheName) =>
-              cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE_NAME
-          )
+          .filter((cacheName) => cacheName !== CACHE_NAME)
           .map((cacheName) => {
             console.log('[ServiceWorker] Deleting old cache:', cacheName)
             return caches.delete(cacheName)
@@ -53,16 +48,16 @@ self.addEventListener('activate', (event: ExtendableEvent) => {
       )
 
       // Take control of all pages
-      self.clients.claim()
+      sw.clients.claim()
 
       console.log('[ServiceWorker] Ready to serve from cache')
     })()
   )
 })
 
-self.addEventListener('fetch', (event: FetchEvent) => {
+sw.addEventListener('fetch', (event: FetchEvent) => {
   // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
+  if (!event.request.url.startsWith(sw.location.origin)) {
     return
   }
 
@@ -71,7 +66,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     return
   }
 
-  const url = new URL(event.request.url)
+  // const url = new URL(event.request.url) // Not needed with single cache
 
   event.respondWith(
     (async () => {
@@ -85,12 +80,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
             .then((response) => {
               if (response.ok) {
                 const responseClone = response.clone()
-                caches
-                  .open(
-                    url.pathname.startsWith('/_app/')
-                      ? CACHE_NAME
-                      : STATIC_CACHE_NAME
-                  )
+                caches.open(CACHE_NAME)
                   .then((cache) => cache.put(event.request, responseClone))
               }
             })
@@ -109,10 +99,7 @@ self.addEventListener('fetch', (event: FetchEvent) => {
         if (networkResponse.ok) {
           // Cache successful responses
           const responseClone = networkResponse.clone()
-          const cacheName = url.pathname.startsWith('/_app/')
-            ? CACHE_NAME
-            : STATIC_CACHE_NAME
-          const cache = await caches.open(cacheName)
+          const cache = await caches.open(CACHE_NAME)
           await cache.put(event.request, responseClone)
         }
 
@@ -141,9 +128,9 @@ self.addEventListener('fetch', (event: FetchEvent) => {
 })
 
 // Listen for messages from the client
-self.addEventListener('message', (event: ExtendableMessageEvent) => {
+sw.addEventListener('message', (event: ExtendableMessageEvent) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting()
+    sw.skipWaiting()
   }
 
   if (event.data && event.data.type === 'GET_VERSION') {
