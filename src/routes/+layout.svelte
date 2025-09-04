@@ -2,7 +2,7 @@
   import '../app.css'
   import favicon from '$lib/assets/favicon.svg'
   import { PWAPrompts, Header } from '$lib/components'
-  import { Toaster } from 'svelte-sonner'
+  import { Toaster } from '$lib/components/ui/sonner'
   import { ModeWatcher } from 'mode-watcher'
   import { onMount } from 'svelte'
   import { browser } from '$app/environment'

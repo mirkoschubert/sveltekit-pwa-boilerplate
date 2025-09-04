@@ -174,6 +174,10 @@ pnpm icons:generate # Generate PWA icons from favicon.svg
 4. **Update documentation** if adding new features
 5. **Use the todo system** for complex multi-step tasks
 6. **Follow semantic commit conventions**
+7. **Always commit changes** after successful completion:
+   - Run `git add -A && git commit -m "descriptive message"`
+   - Include "🤖 Generated with Claude Code" in commit footer
+   - Use conventional commit format (fix:, feat:, refactor:, etc.)
 
 ## Emergency Recovery
 
