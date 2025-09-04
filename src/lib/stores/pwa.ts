@@ -1,6 +1,21 @@
 import { writable } from 'svelte/store'
 import { browser } from '$app/environment'
 
+declare global {
+  interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: string[]
+    readonly userChoice: Promise<{
+      outcome: 'accepted' | 'dismissed'
+      platform: string
+    }>
+    prompt(): Promise<void>
+  }
+
+  interface WindowEventMap {
+    beforeinstallprompt: BeforeInstallPromptEvent
+  }
+}
+
 export interface PWAState {
   isInstallable: boolean
   isInstalled: boolean
@@ -38,9 +53,10 @@ export const pwaActions = {
 
     // Check if already installed
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-    const isInstalled = (navigator as any).standalone || isStandalone
-    
-    pwaState.update(state => ({
+    const isInstalled =
+      (navigator as { standalone?: boolean }).standalone || isStandalone
+
+    pwaState.update((state) => ({
       ...state,
       isInstalled
     }))
@@ -49,13 +65,13 @@ export const pwaActions = {
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault()
       deferredPrompt = e as BeforeInstallPromptEvent
-      pwaState.update(state => ({ ...state, isInstallable: true }))
+      pwaState.update((state) => ({ ...state, isInstallable: true }))
     })
 
     // Listen for app installed
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null
-      pwaState.update(state => ({
+      pwaState.update((state) => ({
         ...state,
         isInstallable: false,
         isInstalled: true
@@ -64,34 +80,45 @@ export const pwaActions = {
 
     // Listen for online/offline status
     const updateOnlineStatus = () => {
-      pwaState.update(state => ({ ...state, isOffline: !navigator.onLine }))
+      pwaState.update((state) => ({ ...state, isOffline: !navigator.onLine }))
     }
-    
+
     window.addEventListener('online', updateOnlineStatus)
     window.addEventListener('offline', updateOnlineStatus)
     updateOnlineStatus()
 
     // Register service worker
     try {
-      swRegistration = await navigator.serviceWorker.register('/service-worker.js')
-      
+      swRegistration =
+        await navigator.serviceWorker.register('/service-worker.js')
+
       // Listen for updates
       swRegistration.addEventListener('updatefound', () => {
         const newWorker = swRegistration?.installing
         if (!newWorker) return
 
         newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            pwaState.update(state => ({ ...state, hasUpdate: true, updateAvailable: true }))
+          if (
+            newWorker.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            pwaState.update((state) => ({
+              ...state,
+              hasUpdate: true,
+              updateAvailable: true
+            }))
           }
         })
       })
 
       // Check for existing update
       if (swRegistration.waiting) {
-        pwaState.update(state => ({ ...state, hasUpdate: true, updateAvailable: true }))
+        pwaState.update((state) => ({
+          ...state,
+          hasUpdate: true,
+          updateAvailable: true
+        }))
       }
-
     } catch (error) {
       console.error('Service Worker registration failed:', error)
     }
@@ -99,32 +126,32 @@ export const pwaActions = {
 
   async install() {
     if (!deferredPrompt) return false
-    
+
     deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
-    
+
     if (outcome === 'accepted') {
       deferredPrompt = null
-      pwaState.update(state => ({ ...state, isInstallable: false }))
+      pwaState.update((state) => ({ ...state, isInstallable: false }))
       return true
     }
-    
+
     return false
   },
 
   async updateApp() {
     if (!swRegistration?.waiting) return
-    
+
     // Send message to service worker to skip waiting
     swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' })
-    
+
     // Reload the page to activate the new service worker
     window.location.reload()
   },
 
   async checkForUpdates() {
     if (!swRegistration) return
-    
+
     try {
       await swRegistration.update()
     } catch (error) {

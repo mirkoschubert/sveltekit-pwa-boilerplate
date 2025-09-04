@@ -12,12 +12,13 @@
     return pwaState.subscribe((state) => {
       showInstallPrompt = state.isInstallable && !state.isInstalled
       showOfflineBanner = state.isOffline
-      
+
       // Show update toast instead of banner
       if (state.updateAvailable && !showUpdatePrompt) {
         showUpdatePrompt = true
         toast('Update available!', {
-          description: 'A new version is available. Update for the latest features.',
+          description:
+            'A new version is available. Update for the latest features.',
           action: {
             label: 'Update Now',
             onClick: () => handleUpdate()
@@ -35,11 +36,6 @@
     }
   }
 
-  function handleUpdateLater() {
-    showUpdatePrompt = false
-    pwaState.update(state => ({ ...state, updateAvailable: false }))
-  }
-
   async function handleUpdate() {
     await pwaActions.updateApp()
   }
@@ -51,26 +47,34 @@
 
 <!-- Install Prompt -->
 {#if showInstallPrompt}
-  <div class="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md rounded-lg border bg-slate-800 border-slate-700 p-4 shadow-lg">
+  <div
+    class="fixed right-4 bottom-4 left-4 z-50 mx-auto max-w-md rounded-lg border border-border bg-card p-4 shadow-lg"
+  >
     <div class="flex items-start gap-3">
       <div class="flex-shrink-0">
-        <svg class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        <svg
+          class="h-6 w-6 text-primary"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+          />
         </svg>
       </div>
-      <div class="flex-1 min-w-0">
-        <h3 class="text-sm font-medium text-white">
-          Install App
-        </h3>
-        <p class="mt-1 text-sm text-slate-300">
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-medium text-card-foreground">Install App</h3>
+        <p class="mt-1 text-sm text-muted-foreground">
           Install this app for quick access and better experience
         </p>
       </div>
     </div>
     <div class="mt-4 flex gap-2">
-      <Button onclick={handleInstall} size="sm">
-        Install
-      </Button>
+      <Button onclick={handleInstall} size="sm">Install</Button>
       <Button onclick={dismissInstall} variant="outline" size="sm">
         Not now
       </Button>
@@ -78,14 +82,25 @@
   </div>
 {/if}
 
-
 <!-- Offline Banner -->
 {#if showOfflineBanner}
-  <div class="fixed top-0 left-0 right-0 z-50 bg-orange-600 text-white">
+  <div
+    class="text-destructive-foreground fixed top-14 right-0 left-0 z-50 bg-destructive"
+  >
     <div class="px-4 py-2 text-center text-sm">
       <div class="flex items-center justify-center gap-2">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg
+          class="h-4 w-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
         </svg>
         You're offline. Some features may be limited.
       </div>

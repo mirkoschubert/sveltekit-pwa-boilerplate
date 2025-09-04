@@ -33,30 +33,33 @@ A modern, opinionated Progressive Web App (PWA) boilerplate built with the lates
 ### Installation
 
 1. **Clone or use this template**
+
    ```sh
    git clone <your-repo-url>
    cd sveltekit-pwa-boilerplate
    ```
 
 2. **Install dependencies**
+
    ```sh
    pnpm install
    ```
 
 3. **Generate PWA icons**
-   
+
    Run the automated icon generator to create all required PWA icons:
+
    ```sh
    pnpm run icons:generate
    ```
-   
+
    This will automatically create all required icons from `static/favicon.svg` including:
    - PWA icons (192x192, 512x512, etc.)
    - Apple touch icons
    - Maskable icons
    - Favicon variations
    - Updates manifest.json and app.html
-   
+
    **Alternative manual tools:**
    - [RealFaviconGenerator](https://realfavicongenerator.net/)
    - [PWA Builder Image Generator](https://www.pwabuilder.com/imageGenerator)
@@ -91,7 +94,7 @@ pnpm test
 # Unit tests only
 pnpm test:unit
 
-# E2E tests only  
+# E2E tests only
 pnpm test:e2e
 
 # Run tests in watch mode
@@ -117,20 +120,25 @@ pnpm run icons:generate
 ## 📱 PWA Features
 
 ### Automatic Updates
+
 The app automatically checks for updates and prompts users when new versions are available. Updates are seamless and don't require app store approval.
 
 ### Offline Support
+
 - All app shell resources are cached
 - Fallback to cached content when offline
 - Smart cache-first strategy with background updates
 
 ### Installation
+
 - Automatic install prompts on supported devices
 - Works on desktop and mobile browsers
 - Native app-like experience
 
 ### Vercel Deployment
+
 Optimized for Vercel with:
+
 - Automatic service worker registration
 - Smart caching strategies
 - Zero-config deployment
@@ -138,18 +146,22 @@ Optimized for Vercel with:
 ## 🎨 Styling & Components
 
 ### Tailwind CSS 4.0
+
 Pre-configured with:
+
 - Modern CSS features
 - Optimized for production
 - Dark mode support ready
 
 ### shadcn-svelte
+
 - High-quality, customizable components
 - Accessible by default
 - Tree-shakeable imports
 - Easy theming
 
 To add components:
+
 ```sh
 pnpm dlx shadcn-svelte@latest add button
 pnpm dlx shadcn-svelte@latest add card
@@ -158,20 +170,26 @@ pnpm dlx shadcn-svelte@latest add card
 ## 🔧 Configuration
 
 ### TypeScript
+
 Configured in strict mode for maximum type safety. See `tsconfig.json`.
 
 ### ESLint & Prettier
+
 Pre-configured for Svelte, TypeScript, and Tailwind CSS. See `eslint.config.js` and `.prettierrc`.
 
 ### PWA Manifest
+
 Edit `static/manifest.json` to customize:
+
 - App name and description
 - Theme colors
 - Display mode
 - Icons
 
 ### Service Worker
+
 The service worker (`src/service-worker.ts`) handles:
+
 - Asset caching
 - Update notifications
 - Offline fallbacks
@@ -191,6 +209,7 @@ The Vercel adapter is pre-configured for optimal PWA performance.
 ### Other Platforms
 
 For other platforms, you may need to:
+
 1. Change the adapter in `svelte.config.js`
 2. Adjust service worker paths if needed
 3. Ensure static assets are served correctly

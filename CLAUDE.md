@@ -5,6 +5,7 @@ This document contains specific instructions for Claude Code when working on thi
 ## Project Overview
 
 This is a modern, opinionated Progressive Web App (PWA) boilerplate built with:
+
 - **SvelteKit 2.0** with **Svelte 5** (runes) and **TypeScript strict mode**
 - **Tailwind CSS 4.0** with **shadcn-svelte** UI components
 - **Native PWA implementation** (without VitePWA)
@@ -14,6 +15,7 @@ This is a modern, opinionated Progressive Web App (PWA) boilerplate built with:
 ## Code Standards & Preferences
 
 ### Code Style
+
 - **No semicolons** (configured in Prettier)
 - **2 spaces indentation** (not tabs)
 - **TypeScript strict mode** - always maintain type safety
@@ -22,11 +24,13 @@ This is a modern, opinionated Progressive Web App (PWA) boilerplate built with:
 - **No Emojis**
 
 ### Package Management
+
 - **Always use `pnpm`** instead of npm or yarn
 - **Never use `npx`** - use `pnpm dlx` instead
 - **Node.js 22** - ensure `fnm use 22` is active
 
 ### Interactive Commands
+
 - **NEVER run interactive commands** - always ask user to run them
 - Interactive commands include:
   - `pnpm create svelte`
@@ -38,6 +42,7 @@ This is a modern, opinionated Progressive Web App (PWA) boilerplate built with:
 - Always tell the user what options to select for interactive commands
 
 ### File Organization
+
 - Keep components in `src/lib/components/`
 - Keep stores in `src/lib/stores/`
 - Keep utilities in `src/lib/utils/`
@@ -45,6 +50,7 @@ This is a modern, opinionated Progressive Web App (PWA) boilerplate built with:
 - Static assets in `static/`
 
 ### PWA Implementation
+
 - **Use native SvelteKit service workers** (no VitePWA)
 - **Vercel-optimized** caching strategies
 - **Seamless updates** - no "double refresh" problem
@@ -54,6 +60,7 @@ This is a modern, opinionated Progressive Web App (PWA) boilerplate built with:
 ## Development Workflow
 
 ### Available Scripts
+
 ```bash
 pnpm dev          # Start dev server (user runs this)
 pnpm build        # Build for production
@@ -68,12 +75,14 @@ pnpm icons:generate # Generate PWA icons from favicon.svg
 ```
 
 ### Git Workflow
+
 - Always initialize git repository
 - Use conventional commit messages
 - Include "🤖 Generated with Claude Code" in commit footer
 - Commit frequently with meaningful messages
 
 ### Testing
+
 - **Playwright** for E2E tests
 - **Vitest** for unit and component tests
 - Always check if tests pass before committing
@@ -82,24 +91,28 @@ pnpm icons:generate # Generate PWA icons from favicon.svg
 ## Technology-Specific Guidelines
 
 ### SvelteKit & Svelte 5
+
 - Use **runes** (`$state`, `$derived`, `$effect`) instead of legacy reactive declarations
 - Prefer `let { children } = $props()` over `$$slots`
 - Use `{@render children?.()}` for slot rendering
 - Keep service worker in `src/service-worker.ts`
 
 ### Tailwind CSS
+
 - Use **Tailwind CSS 4.0** features
 - Configure for production optimization
 - Use utility classes, avoid custom CSS when possible
 - Dark mode support ready but not implemented by default
 
 ### shadcn-svelte
+
 - Add components with `pnpm dlx shadcn-svelte@latest add <component>`
 - Components are in `src/lib/components/ui/`
 - Use tree-shakeable imports
 - Customize components as needed
 
 ### TypeScript
+
 - **Strict mode always enabled**
 - Use proper typing for all functions and components
 - No `any` types - use proper interfaces
@@ -108,18 +121,21 @@ pnpm icons:generate # Generate PWA icons from favicon.svg
 ## PWA Requirements
 
 ### Service Worker
+
 - Use SvelteKit's native service worker implementation
 - Cache app shell, static files, and prerendered pages
 - Implement smart update mechanism (no double refresh)
 - Handle offline scenarios gracefully
 
 ### Manifest & Icons
+
 - Complete `manifest.json` with all required fields
 - Generate icons with `pnpm run icons:generate`
 - Include all necessary meta tags in `app.html`
 - Support install prompts and app-like behavior
 
 ### Update System
+
 - Automatic update detection
 - User-friendly update prompts
 - Seamless background updates
@@ -128,12 +144,14 @@ pnpm icons:generate # Generate PWA icons from favicon.svg
 ## Deployment
 
 ### Vercel (Primary)
+
 - **@sveltejs/adapter-vercel** is pre-configured
 - Zero-config deployment
 - PWA features work automatically
 - Optimized for Vercel's edge network
 
 ### Other Platforms
+
 - May need adapter changes in `svelte.config.js`
 - Ensure service worker paths are correct
 - Verify static asset serving
@@ -160,6 +178,7 @@ pnpm icons:generate # Generate PWA icons from favicon.svg
 ## Emergency Recovery
 
 If something breaks:
+
 1. Check `pnpm check` for TypeScript errors
 2. Run `pnpm lint` for style issues
 3. Verify service worker syntax in browser DevTools
