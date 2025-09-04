@@ -92,13 +92,19 @@ export const pwaActions = {
       const versionData = await versionResponse.json()
       const currentVersion = versionData.version
 
-      console.log('[PWA] Current app version:', currentVersion)
+      console.log('[PWA] Initializing with version:', {
+        version: currentVersion,
+        isInstalled,
+        swUrl: `/service-worker.js?v=${currentVersion}`
+      })
 
       pwaState.update((state) => ({
         ...state,
         isInstalled,
         currentVersion,
-        latestVersion: currentVersion
+        latestVersion: currentVersion,
+        updateAvailable: false,
+        hasUpdate: false
       }))
 
       // Register service worker with versioned URL
@@ -110,43 +116,25 @@ export const pwaActions = {
         currentVersion
       )
 
-      // Listen for updates - with versioned registration, updates will trigger immediately
+      // Listen for service worker events for debugging purposes only
       swRegistration.addEventListener('updatefound', () => {
         const newWorker = swRegistration?.installing
         if (!newWorker) return
 
-        console.log('[PWA] New service worker installing...')
+        console.log('[PWA] New service worker installing (debug only)')
 
         newWorker.addEventListener('statechange', () => {
           console.log('[PWA] Service worker state changed:', newWorker.state)
 
-          if (
-            newWorker.state === 'installed' &&
-            navigator.serviceWorker.controller
-          ) {
-            console.log('[PWA] New service worker installed, update available')
-            pwaState.update((state) => ({
-              ...state,
-              hasUpdate: true,
-              updateAvailable: true
-            }))
-          }
-
           if (newWorker.state === 'activated') {
             console.log('[PWA] New service worker activated')
-            // Optionally reload the page here or let user decide
           }
         })
       })
 
-      // Check for existing update
+      // Check for existing waiting service worker (debug info only)
       if (swRegistration.waiting) {
-        console.log('[PWA] Service worker update waiting')
-        pwaState.update((state) => ({
-          ...state,
-          hasUpdate: true,
-          updateAvailable: true
-        }))
+        console.log('[PWA] Service worker update waiting (debug info)')
       }
 
       // Start periodic version checking
@@ -186,6 +174,15 @@ export const pwaActions = {
   },
 
   async updateApp() {
+    console.log('[PWA] Starting app update process')
+
+    // Clear update state before reload
+    pwaState.update((state) => ({
+      ...state,
+      updateAvailable: false,
+      hasUpdate: false
+    }))
+
     if (!swRegistration?.waiting) {
       // If no waiting worker, try refreshing to get new version
       console.log('[PWA] No waiting worker, refreshing page for updates')
@@ -216,16 +213,22 @@ export const pwaActions = {
         const hasNewVersion =
           state.currentVersion && state.currentVersion !== latestVersion
 
-        console.log('[PWA] Version check:', {
+        console.log('[PWA] Version check result:', {
           current: state.currentVersion,
           latest: latestVersion,
-          hasUpdate: hasNewVersion
+          hasVersionDifference: hasNewVersion,
+          willShowUpdate: hasNewVersion,
+          previousUpdateState: {
+            updateAvailable: state.updateAvailable,
+            hasUpdate: state.hasUpdate
+          }
         })
 
         return {
           ...state,
           latestVersion,
-          updateAvailable: hasNewVersion || state.updateAvailable
+          updateAvailable: !!hasNewVersion,
+          hasUpdate: !!hasNewVersion
         }
       })
 
@@ -252,6 +255,16 @@ export const pwaActions = {
     // Start first check after 5 seconds
     setTimeout(poll, 5000)
     console.log('[PWA] Started version polling (every 15 minutes)')
+  },
+
+  // Reset update state (useful for debugging or after failed updates)
+  resetUpdateState() {
+    console.log('[PWA] Resetting update state')
+    pwaState.update((state) => ({
+      ...state,
+      updateAvailable: false,
+      hasUpdate: false
+    }))
   }
 }
 

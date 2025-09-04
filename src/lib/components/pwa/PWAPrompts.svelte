@@ -13,9 +13,18 @@
       showInstallPrompt = state.isInstallable && !state.isInstalled
       showOfflineBanner = state.isOffline
 
-      // Show update toast with version info
-      if (state.updateAvailable && !showUpdatePrompt) {
+      // Show update toast with version info - only when versions actually differ
+      if (
+        state.updateAvailable &&
+        !showUpdatePrompt &&
+        state.currentVersion !== state.latestVersion
+      ) {
         showUpdatePrompt = true
+
+        console.log('[PWA] Showing update notification:', {
+          current: state.currentVersion,
+          latest: state.latestVersion
+        })
 
         const updateMessage =
           state.currentVersion && state.latestVersion
@@ -33,8 +42,20 @@
             label: 'Update Now',
             onClick: () => handleUpdate()
           },
+          cancel: {
+            label: 'Later',
+            onClick: () => {
+              showUpdatePrompt = false
+              pwaActions.resetUpdateState()
+            }
+          },
           duration: Infinity
         })
+      }
+
+      // Reset showUpdatePrompt when update is no longer available
+      if (!state.updateAvailable && showUpdatePrompt) {
+        showUpdatePrompt = false
       }
     })
   })
