@@ -30,6 +30,12 @@ export const pwaActions = {
       return
     }
 
+    // Only register service worker in production
+    if (import.meta.env.DEV) {
+      console.log('[PWA] Service worker disabled in development')
+      return
+    }
+
     // Check if already installed
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
     const isInstalled = (navigator as any).standalone || isStandalone
