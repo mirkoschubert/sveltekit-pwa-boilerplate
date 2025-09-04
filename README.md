@@ -43,15 +43,21 @@ A modern, opinionated Progressive Web App (PWA) boilerplate built with the lates
    pnpm install
    ```
 
-3. **Add PWA icons**
+3. **Generate PWA icons**
    
-   Generate and add these icons to the `/static` directory:
-   - `pwa-192x192.png` - 192x192px PWA icon
-   - `pwa-512x512.png` - 512x512px PWA icon
-   - `pwa-maskable-192x192.png` - 192x192px maskable icon
-   - `pwa-maskable-512x512.png` - 512x512px maskable icon
+   Run the automated icon generator to create all required PWA icons:
+   ```sh
+   pnpm run icons:generate
+   ```
    
-   **Recommended tools:**
+   This will automatically create all required icons from `static/favicon.svg` including:
+   - PWA icons (192x192, 512x512, etc.)
+   - Apple touch icons
+   - Maskable icons
+   - Favicon variations
+   - Updates manifest.json and app.html
+   
+   **Alternative manual tools:**
    - [RealFaviconGenerator](https://realfavicongenerator.net/)
    - [PWA Builder Image Generator](https://www.pwabuilder.com/imageGenerator)
    - [Maskable.app Editor](https://maskable.app/editor)
@@ -103,6 +109,9 @@ pnpm lint
 
 # Type check
 pnpm check
+
+# Generate PWA icons
+pnpm run icons:generate
 ```
 
 ## 📱 PWA Features
