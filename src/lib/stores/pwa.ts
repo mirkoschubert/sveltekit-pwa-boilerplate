@@ -260,8 +260,8 @@ export const pwaActions = {
   startVersionPolling() {
     if (!browser) return
 
-    // Check for updates every 15 minutes
-    const pollInterval = 15 * 60 * 1000 // 15 minutes
+    // Check for updates every 30 seconds (for testing - change back to 15min in production)
+    const pollInterval = 30 * 1000 // 30 seconds for testing
 
     const poll = async () => {
       await this.checkForUpdates()
@@ -270,7 +270,9 @@ export const pwaActions = {
 
     // Start first check after 5 seconds
     setTimeout(poll, 5000)
-    console.log('[PWA] Started version polling (every 15 minutes)')
+    console.log(
+      '[PWA] Started version polling (every 30 seconds - testing mode)'
+    )
   },
 
   // Reset update state (useful for debugging or after failed updates)

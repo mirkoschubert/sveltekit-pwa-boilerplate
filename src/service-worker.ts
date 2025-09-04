@@ -8,21 +8,17 @@ import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 
 const sw = self as unknown as ServiceWorkerGlobalScope
 
-// Let Workbox auto-generate revisions based on file content
-// This ensures proper cache busting when files actually change
-console.log('[ServiceWorker] Version:', version)
-console.log(
-  '[ServiceWorker] Precaching',
-  build.length + files.length + prerendered.length,
-  'assets'
-)
+// Create precache manifest with version-based revisions (this worked in v1.x)
+const precacheList = [...build, ...files, ...prerendered].map((url) => ({
+  url,
+  revision: version // Use SvelteKit version for cache busting
+}))
 
-// Use Workbox with automatic revision generation
-precacheAndRoute([
-  ...build.map((url) => ({ url, revision: null })), // Workbox will generate revisions
-  ...files.map((url) => ({ url, revision: null })),
-  ...prerendered.map((url) => ({ url, revision: null }))
-])
+console.log('[ServiceWorker] Version:', version)
+console.log('[ServiceWorker] Precaching', precacheList.length, 'assets')
+
+// Use Workbox with version-based revisions
+precacheAndRoute(precacheList)
 
 // Clean up outdated caches automatically
 cleanupOutdatedCaches()
