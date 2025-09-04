@@ -9,8 +9,8 @@ pnpm run icons:generate
 ```
 
 This will create:
-- All required PNG icons in various sizes (192x192, 512x512, etc.)
-- Apple touch icons
+- All required PNG icons in various sizes (192x192, 512x512, etc.) in `/static/icons/`
+- Apple touch icons and splash screens
 - Favicon variations
 - Maskable icons
 - Update `manifest.json` with correct icon paths
@@ -18,12 +18,12 @@ This will create:
 
 ## Manual Generation (Alternative)
 
-If you prefer manual generation, create these files in `/static`:
+If you prefer manual generation, create these files in `/static/icons/`:
 
-- `pwa-192x192.png` - 192x192px PWA icon
-- `pwa-512x512.png` - 512x512px PWA icon  
-- `pwa-maskable-192x192.png` - 192x192px maskable icon
-- `pwa-maskable-512x512.png` - 512x512px maskable icon
+- `manifest-icon-192.maskable.png` - 192x192px PWA icon
+- `manifest-icon-512.maskable.png` - 512x512px PWA icon
+- `apple-icon-180.png` - Apple touch icon
+- Various splash screen images for iOS devices
 
 **Tools for manual generation:**
 - https://realfavicongenerator.net/
