@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 
+/**
+ * PWA Icon Generator using Sharp
+ * 
+ * Generates PWA icons, Apple touch icons, and screenshots from favicon.svg
+ * 
+ * Generated files are committed to Git as static assets for proper Vercel deployment.
+ * Run this script when you need to update icons after changing the source SVG.
+ * 
+ * Usage: pnpm run icons:generate
+ */
+
 import { promises as fs } from 'fs'
 import sharp from 'sharp'
 import path from 'path'
