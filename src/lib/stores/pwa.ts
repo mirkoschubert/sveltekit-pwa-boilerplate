@@ -20,29 +20,20 @@ declare global {
 export interface PWAState {
   isInstallable: boolean
   isInstalled: boolean
-  hasUpdate: boolean
   isOffline: boolean
   updateAvailable: boolean
-  currentVersion: string | null
-  latestVersion: string | null
 }
 
 const initialState: PWAState = {
   isInstallable: false,
   isInstalled: false,
-  hasUpdate: false,
   isOffline: false,
-  updateAvailable: false,
-  currentVersion: null,
-  latestVersion: null
+  updateAvailable: false
 }
 
 export const pwaState = writable<PWAState>(initialState)
 
 let deferredPrompt: BeforeInstallPromptEvent | null = null
-
-// Service Worker registration
-let swRegistration: ServiceWorkerRegistration | null = null
 
 export const pwaActions = {
   async initialize() {
@@ -87,97 +78,22 @@ export const pwaActions = {
     window.addEventListener('offline', updateOnlineStatus)
     updateOnlineStatus()
 
-    // Get current version and register service worker with versioned URL
+    // Register service worker (let SvelteKit handle updates)
     try {
-      const versionResponse = await fetch('/_app/version.json')
-      const versionData = await versionResponse.json()
-      const currentVersion = versionData.version
-
-      console.log('[PWA] Initializing with version:', {
-        version: currentVersion,
-        isInstalled,
-        swUrl: `/service-worker.js?v=${currentVersion}`
-      })
-
-      // Check if we already have a registration for this version
-      const existingRegistration = await navigator.serviceWorker.getRegistration()
-      const currentSWUrl = existingRegistration?.active?.scriptURL || existingRegistration?.installing?.scriptURL || ''
-      const needsNewRegistration = !existingRegistration || 
-        !currentSWUrl.includes(`v=${currentVersion}`)
-      
-      if (needsNewRegistration) {
-        // Register service worker with versioned URL (forces browser to install new SW)
-        const swUrl = `/service-worker.js?v=${currentVersion}`
-        swRegistration = await navigator.serviceWorker.register(swUrl)
-        console.log('[PWA] New service worker registered with version:', currentVersion)
-      } else {
-        // Use existing registration
-        swRegistration = existingRegistration
-        console.log('[PWA] Using existing service worker registration for version:', currentVersion)
-      }
+      await navigator.serviceWorker.register('/service-worker.js')
+      console.log('[PWA] Service worker registered successfully')
 
       pwaState.update((state) => ({
         ...state,
         isInstalled,
-        currentVersion,
-        latestVersion: currentVersion,
-        updateAvailable: false,
-        hasUpdate: false
+        updateAvailable: updated.current // Use SvelteKit's native update detection
       }))
 
-      // Listen for service worker updates (content-based detection)
-      swRegistration.addEventListener('updatefound', () => {
-        const newWorker = swRegistration?.installing
-        if (!newWorker) return
-
-        console.log('[PWA] New service worker detected and installing')
-
-        newWorker.addEventListener('statechange', () => {
-          console.log('[PWA] Service worker state changed:', newWorker.state)
-
-          if (
-            newWorker.state === 'installed' &&
-            navigator.serviceWorker.controller
-          ) {
-            console.log('[PWA] Service worker installed - checking for version difference')
-            
-            // Double-check with version comparison before showing update
-            this.checkForUpdates().then(() => {
-              console.log('[PWA] Version check completed after SW installation')
-            })
-          }
-
-          if (newWorker.state === 'activated') {
-            console.log('[PWA] New service worker activated')
-          }
-        })
-      })
-
-      // Check for existing waiting service worker
-      if (swRegistration.waiting) {
-        console.log('[PWA] Service worker update waiting - checking version')
-        // Only show update if versions actually differ
-        this.checkForUpdates()
-      }
-
-      // Start periodic version checking
-      this.startVersionPolling()
+      // Note: SvelteKit's native polling will handle update detection
+      // We just need to listen to SvelteKit's updated state
+      console.log('[PWA] SvelteKit native polling enabled - updates handled automatically')
     } catch (error) {
-      console.error(
-        'Service Worker registration or version fetch failed:',
-        error
-      )
-      // Fallback to non-versioned registration
-      try {
-        swRegistration =
-          await navigator.serviceWorker.register('/service-worker.js')
-        console.log('[PWA] Fallback: Service worker registered without version')
-      } catch (fallbackError) {
-        console.error(
-          'Fallback service worker registration failed:',
-          fallbackError
-        )
-      }
+      console.error('Service Worker registration failed:', error)
     }
   },
 
@@ -197,141 +113,43 @@ export const pwaActions = {
   },
 
   async updateApp() {
-    console.log('[PWA] Starting app update process')
+    console.log('[PWA] Starting app update process - reloading page')
 
     // Clear update state before reload
     pwaState.update((state) => ({
       ...state,
-      updateAvailable: false,
-      hasUpdate: false
+      updateAvailable: false
     }))
 
-    if (!swRegistration?.waiting) {
-      // If no waiting worker, try refreshing to get new version
-      console.log('[PWA] No waiting worker, refreshing page for updates')
-      window.location.reload()
-      return
-    }
-
-    console.log('[PWA] Activating waiting service worker')
-    // Send message to service worker to skip waiting
-    swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' })
-
-    // Reload the page to activate the new service worker
+    // Simple reload - let SvelteKit handle the service worker update
     window.location.reload()
   },
 
   async checkForUpdates() {
     if (!browser) return
 
-    try {
-      // Check for new version
-      const versionResponse = await fetch('/_app/version.json', {
-        cache: 'no-store'
-      })
-      const versionData = await versionResponse.json()
-      const latestVersion = versionData.version
-
-      pwaState.update((state) => {
-        const hasNewVersion =
-          state.currentVersion && state.currentVersion !== latestVersion
-
-        console.log('[PWA] Version check result:', {
-          current: state.currentVersion,
-          latest: latestVersion,
-          hasVersionDifference: hasNewVersion,
-          willShowUpdate: hasNewVersion,
-          previousUpdateState: {
-            updateAvailable: state.updateAvailable,
-            hasUpdate: state.hasUpdate
-          }
-        })
-
-        // If version difference detected, compare all three version sources
-        if (hasNewVersion && state.currentVersion) {
-          this.compareAllVersionSources(state.currentVersion, latestVersion)
-        }
-
-        return {
-          ...state,
-          latestVersion,
-          updateAvailable: !!hasNewVersion,
-          hasUpdate: !!hasNewVersion
-        }
-      })
-
-      // If there's a version difference, the next page load will get the new SW
-      if (swRegistration) {
-        await swRegistration.update()
-      }
-    } catch (error) {
-      console.error('[PWA] Failed to check for updates:', error)
-    }
-  },
-
-  startVersionPolling() {
-    if (!browser) return
-
-    // Check for updates every 30 seconds (for testing - change back to 15min in production)
-    const pollInterval = 30 * 1000 // 30 seconds for testing
-
-    const poll = async () => {
-      await this.checkForUpdates()
-      setTimeout(poll, pollInterval)
-    }
-
-    // Start first check after 5 seconds
-    setTimeout(poll, 5000)
-    console.log(
-      '[PWA] Started version polling (every 30 seconds - testing mode)'
-    )
-  },
-
-  // Compare all three version sources for debugging
-  async compareAllVersionSources(currentVersion: string, latestVersion: string) {
-    let serviceWorkerVersion = 'unknown'
+    // Use SvelteKit's native update check
+    const hasUpdate = await updated.check()
     
-    // Try to get version from active service worker
-    if (navigator.serviceWorker.controller) {
-      try {
-        const channel = new MessageChannel()
-        navigator.serviceWorker.controller.postMessage(
-          { type: 'GET_VERSION' },
-          [channel.port2]
-        )
-        
-        const response = await new Promise<{ version?: string }>((resolve) => {
-          channel.port1.onmessage = (event) => resolve(event.data)
-          setTimeout(() => resolve({ version: 'timeout' }), 1000)
-        })
-        serviceWorkerVersion = response.version || 'no-response'
-      } catch (error) {
-        serviceWorkerVersion = 'error'
-      }
-    } else {
-      serviceWorkerVersion = 'no-active-sw'
-    }
-    
-    console.log('[PWA] 🔍 VERSION COMPARISON (during polling):', {
-      '1_version_json_current': currentVersion,
-      '2_version_json_latest': latestVersion,
-      '3_service_worker_version': serviceWorkerVersion,
-      '4_app_state_updated_current': updated.current,
-      '5_app_state_updated_check': await updated.check(),
-      versions_current_vs_sw: currentVersion === serviceWorkerVersion,
-      versions_latest_vs_sw: latestVersion === serviceWorkerVersion,
-      has_active_sw: !!navigator.serviceWorker.controller,
-      version_difference_detected: currentVersion !== latestVersion
+    pwaState.update((state) => ({
+      ...state,
+      updateAvailable: hasUpdate || updated.current
+    }))
+
+    console.log('[PWA] SvelteKit update check result:', {
+      hasUpdate,
+      updatedCurrent: updated.current,
+      updateAvailable: hasUpdate || updated.current
     })
   },
+
 
   // Reset update state (useful for debugging or after failed updates)
   resetUpdateState() {
     console.log('[PWA] Resetting update state')
     pwaState.update((state) => ({
       ...state,
-      updateAvailable: false,
-      hasUpdate: false
+      updateAvailable: false
     }))
   }
 }

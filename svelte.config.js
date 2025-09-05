@@ -8,6 +8,10 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter(),
+    version: {
+      // Enable SvelteKit's native service worker polling (30 seconds for testing)
+      pollInterval: 30000
+    },
     prerender: {
       handleHttpError: ({ path, message }) => {
         // Ignore 404s for PWA icons during prerender - they exist but aren't found during build

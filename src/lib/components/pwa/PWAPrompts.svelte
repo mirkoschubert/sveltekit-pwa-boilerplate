@@ -13,28 +13,17 @@
       showInstallPrompt = state.isInstallable && !state.isInstalled
       showOfflineBanner = state.isOffline
 
-      // Show update toast when versions actually differ (combining SW events + version checks)
+      // Show update toast when SvelteKit detects update
       if (
         state.updateAvailable &&
-        !showUpdatePrompt &&
-        state.currentVersion !== state.latestVersion
+        !showUpdatePrompt
       ) {
         showUpdatePrompt = true
 
-        console.log('[PWA] Showing update notification:', {
-          current: state.currentVersion,
-          latest: state.latestVersion
-        })
+        console.log('[PWA] Showing update notification from SvelteKit')
 
-        const updateMessage =
-          state.currentVersion && state.latestVersion
-            ? `Update available (${state.currentVersion} → ${state.latestVersion})`
-            : 'App update available!'
-
-        const updateDescription =
-          state.currentVersion && state.latestVersion
-            ? `A new version is ready. Update now for the latest features and improvements.`
-            : 'A new version is available. Update for the latest features.'
+        const updateMessage = 'App update available!'
+        const updateDescription = 'A new version is available. Update for the latest features.'
 
         toast(updateMessage, {
           description: updateDescription,
