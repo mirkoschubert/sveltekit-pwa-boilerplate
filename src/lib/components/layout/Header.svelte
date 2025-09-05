@@ -5,7 +5,7 @@
 </script>
 
 <header
-  class="sticky top-0 z-40 w-full border-b red-500/95 backdrop-blur supports-[backdrop-filter]:red-500/60"
+  class="sticky top-0 z-40 w-full border-b bg-red-500/95 backdrop-blur supports-[backdrop-filter]:bg-red-500/60"
 >
   <div class="container mx-auto flex h-14 max-w-screen-2xl items-center px-4">
     <!-- Logo/Title -->
