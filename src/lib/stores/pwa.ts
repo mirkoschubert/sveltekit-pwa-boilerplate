@@ -98,11 +98,22 @@ export const pwaActions = {
         swUrl: `/service-worker.js?v=${currentVersion}`
       })
 
-      // Register service worker with versioned URL (forces browser to install new SW)
-      const swUrl = `/service-worker.js?v=${currentVersion}`
-      swRegistration = await navigator.serviceWorker.register(swUrl)
-
-      console.log('[PWA] Service worker registered with version:', currentVersion)
+      // Check if we already have a registration for this version
+      const existingRegistration = await navigator.serviceWorker.getRegistration()
+      const currentSWUrl = existingRegistration?.active?.scriptURL || existingRegistration?.installing?.scriptURL || ''
+      const needsNewRegistration = !existingRegistration || 
+        !currentSWUrl.includes(`v=${currentVersion}`)
+      
+      if (needsNewRegistration) {
+        // Register service worker with versioned URL (forces browser to install new SW)
+        const swUrl = `/service-worker.js?v=${currentVersion}`
+        swRegistration = await navigator.serviceWorker.register(swUrl)
+        console.log('[PWA] New service worker registered with version:', currentVersion)
+      } else {
+        // Use existing registration
+        swRegistration = existingRegistration
+        console.log('[PWA] Using existing service worker registration for version:', currentVersion)
+      }
 
       pwaState.update((state) => ({
         ...state,

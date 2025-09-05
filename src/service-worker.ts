@@ -16,16 +16,27 @@ const precacheList = [...build, ...files, ...prerendered].map((url) => ({
 
 console.log('[ServiceWorker] Version:', version)
 console.log('[ServiceWorker] Precaching', precacheList.length, 'assets')
+console.log('[ServiceWorker] Precache list sample:', precacheList.slice(0, 3))
 
 // Use Workbox with version-based revisions
 precacheAndRoute(precacheList)
 
+console.log('[ServiceWorker] Workbox precacheAndRoute called')
+
 // Clean up outdated caches automatically
 cleanupOutdatedCaches()
 
-sw.addEventListener('install', () => {
-  console.log('[ServiceWorker] Install - skipping waiting immediately')
-  sw.skipWaiting()
+sw.addEventListener('install', (event: ExtendableEvent) => {
+  console.log('[ServiceWorker] Install - waiting for precaching to complete')
+  
+  // Wait for precaching to complete before skipping waiting
+  event.waitUntil(
+    (async () => {
+      // Let Workbox finish precaching first
+      console.log('[ServiceWorker] Precaching completed, now skipping waiting')
+      sw.skipWaiting()
+    })()
+  )
 })
 
 sw.addEventListener('activate', (event: ExtendableEvent) => {
