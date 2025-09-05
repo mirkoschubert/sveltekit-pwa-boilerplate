@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store'
 import { browser } from '$app/environment'
+import { updated } from '$app/stores'
 
 declare global {
   interface BeforeInstallPromptEvent extends Event {
@@ -92,8 +93,34 @@ export const pwaActions = {
       const versionData = await versionResponse.json()
       const currentVersion = versionData.version
 
-      console.log('[PWA] Initializing with version:', {
-        version: currentVersion,
+      // Compare all three version sources (get SW version via message)
+      let serviceWorkerVersion = 'unknown'
+      
+      // Try to get version from active service worker
+      if (navigator.serviceWorker.controller) {
+        try {
+          const channel = new MessageChannel()
+          navigator.serviceWorker.controller.postMessage(
+            { type: 'GET_VERSION' },
+            [channel.port2]
+          )
+          
+          const response = await new Promise<{ version?: string }>((resolve) => {
+            channel.port1.onmessage = (event) => resolve(event.data)
+            setTimeout(() => resolve({ version: 'timeout' }), 1000)
+          })
+          serviceWorkerVersion = response.version || 'no-response'
+        } catch (error) {
+          serviceWorkerVersion = 'error'
+        }
+      }
+      
+      console.log('[PWA] VERSION COMPARISON:', {
+        '1_version_json': currentVersion,
+        '2_service_worker_version': serviceWorkerVersion,
+        '3_app_state_updated': updated ? 'updated available' : 'no update',
+        versions_match: currentVersion === serviceWorkerVersion,
+        has_active_sw: !!navigator.serviceWorker.controller,
         isInstalled,
         swUrl: `/service-worker.js?v=${currentVersion}`
       })
@@ -290,6 +317,14 @@ export const pwaActions = {
       hasUpdate: false
     }))
   }
+}
+
+// Monitor app state updates
+if (browser) {
+  // Subscribe to updated store to detect app updates
+  updated.subscribe((value) => {
+    console.log('[PWA] App state updated changed:', value)
+  })
 }
 
 // Auto-initialize when module is imported
