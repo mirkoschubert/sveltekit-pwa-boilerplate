@@ -27,15 +27,13 @@ console.log('[ServiceWorker] Workbox precacheAndRoute called')
 cleanupOutdatedCaches()
 
 sw.addEventListener('install', (event: ExtendableEvent) => {
-  console.log('[ServiceWorker] Install - waiting for precaching to complete')
+  console.log('[ServiceWorker] Install - precaching assets')
   
-  // Wait for precaching to complete but DON'T automatically skip waiting
-  // Let the client control when to activate the new service worker
+  // Standard SvelteKit pattern - let framework handle lifecycle
   event.waitUntil(
     (async () => {
-      // Let Workbox finish precaching first
-      console.log('[ServiceWorker] Precaching completed - waiting for activation signal')
-      // No automatic skipWaiting() - wait for client message
+      console.log('[ServiceWorker] Precaching completed')
+      // Let SvelteKit handle when to activate - no custom skipWaiting logic
     })()
   )
 })
@@ -45,24 +43,15 @@ sw.addEventListener('activate', (event: ExtendableEvent) => {
   event.waitUntil(sw.clients.claim())
 })
 
-// Listen for messages from the client
+// Standard message handling - minimal custom logic
 sw.addEventListener('message', (event: ExtendableMessageEvent) => {
-  console.log('[ServiceWorker] 📨 Message received:', {
-    type: event.data?.type,
-    data: event.data,
-    timestamp: new Date().toISOString()
-  })
+  console.log('[ServiceWorker] Message received:', event.data?.type)
 
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[ServiceWorker] ⚡ SKIP_WAITING received - calling skipWaiting()')
-    sw.skipWaiting()
-    console.log('[ServiceWorker] ✅ skipWaiting() called')
-  }
-
-  if (event.data && event.data.type === 'GET_VERSION') {
-    console.log('[ServiceWorker] 📤 Sending version:', version)
+  if (event.data?.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version })
   }
+  
+  // Remove SKIP_WAITING handling - let SvelteKit manage SW lifecycle
 })
 
 console.log(`[ServiceWorker] Version ${version} ready`)
