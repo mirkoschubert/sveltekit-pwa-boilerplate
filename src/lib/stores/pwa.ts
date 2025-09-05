@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 import { browser } from '$app/environment'
-import { updated } from '$app/stores'
+import { updated } from '$app/state'
 
 declare global {
   interface BeforeInstallPromptEvent extends Event {
@@ -93,34 +93,8 @@ export const pwaActions = {
       const versionData = await versionResponse.json()
       const currentVersion = versionData.version
 
-      // Compare all three version sources (get SW version via message)
-      let serviceWorkerVersion = 'unknown'
-      
-      // Try to get version from active service worker
-      if (navigator.serviceWorker.controller) {
-        try {
-          const channel = new MessageChannel()
-          navigator.serviceWorker.controller.postMessage(
-            { type: 'GET_VERSION' },
-            [channel.port2]
-          )
-          
-          const response = await new Promise<{ version?: string }>((resolve) => {
-            channel.port1.onmessage = (event) => resolve(event.data)
-            setTimeout(() => resolve({ version: 'timeout' }), 1000)
-          })
-          serviceWorkerVersion = response.version || 'no-response'
-        } catch (error) {
-          serviceWorkerVersion = 'error'
-        }
-      }
-      
-      console.log('[PWA] VERSION COMPARISON:', {
-        '1_version_json': currentVersion,
-        '2_service_worker_version': serviceWorkerVersion,
-        '3_app_state_updated': updated ? 'updated available' : 'no update',
-        versions_match: currentVersion === serviceWorkerVersion,
-        has_active_sw: !!navigator.serviceWorker.controller,
+      console.log('[PWA] Initializing with version:', {
+        version: currentVersion,
         isInstalled,
         swUrl: `/service-worker.js?v=${currentVersion}`
       })
@@ -273,6 +247,11 @@ export const pwaActions = {
           }
         })
 
+        // If version difference detected, compare all three version sources
+        if (hasNewVersion && state.currentVersion) {
+          this.compareAllVersionSources(state.currentVersion, latestVersion)
+        }
+
         return {
           ...state,
           latestVersion,
@@ -308,6 +287,44 @@ export const pwaActions = {
     )
   },
 
+  // Compare all three version sources for debugging
+  async compareAllVersionSources(currentVersion: string, latestVersion: string) {
+    let serviceWorkerVersion = 'unknown'
+    
+    // Try to get version from active service worker
+    if (navigator.serviceWorker.controller) {
+      try {
+        const channel = new MessageChannel()
+        navigator.serviceWorker.controller.postMessage(
+          { type: 'GET_VERSION' },
+          [channel.port2]
+        )
+        
+        const response = await new Promise<{ version?: string }>((resolve) => {
+          channel.port1.onmessage = (event) => resolve(event.data)
+          setTimeout(() => resolve({ version: 'timeout' }), 1000)
+        })
+        serviceWorkerVersion = response.version || 'no-response'
+      } catch (error) {
+        serviceWorkerVersion = 'error'
+      }
+    } else {
+      serviceWorkerVersion = 'no-active-sw'
+    }
+    
+    console.log('[PWA] 🔍 VERSION COMPARISON (during polling):', {
+      '1_version_json_current': currentVersion,
+      '2_version_json_latest': latestVersion,
+      '3_service_worker_version': serviceWorkerVersion,
+      '4_app_state_updated_current': updated.current,
+      '5_app_state_updated_check': await updated.check(),
+      versions_current_vs_sw: currentVersion === serviceWorkerVersion,
+      versions_latest_vs_sw: latestVersion === serviceWorkerVersion,
+      has_active_sw: !!navigator.serviceWorker.controller,
+      version_difference_detected: currentVersion !== latestVersion
+    })
+  },
+
   // Reset update state (useful for debugging or after failed updates)
   resetUpdateState() {
     console.log('[PWA] Resetting update state')
@@ -321,10 +338,8 @@ export const pwaActions = {
 
 // Monitor app state updates
 if (browser) {
-  // Subscribe to updated store to detect app updates
-  updated.subscribe((value) => {
-    console.log('[PWA] App state updated changed:', value)
-  })
+  // Log initial updated state
+  console.log('[PWA] Initial app state updated value:', updated.current)
 }
 
 // Auto-initialize when module is imported
