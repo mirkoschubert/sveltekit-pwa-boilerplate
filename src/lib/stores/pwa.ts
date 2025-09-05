@@ -156,8 +156,8 @@ export const pwaActions = {
         
         // Wait a moment for activation, then reload
         setTimeout(() => {
-          console.log('[PWA] ⏰ Timeout reached - reloading page')
-          window.location.reload()
+          console.log('[PWA] ⏰ Timeout reached - WOULD reload page (disabled for debugging)')
+          // window.location.reload() // DISABLED for debugging
         }, 1000)
       } else {
         // No waiting SW, debug this scenario
@@ -184,14 +184,14 @@ export const pwaActions = {
           }))
         })
         
-        console.log('[PWA] ⏰ Reloading page after debug info')
-        window.location.reload()
+        console.log('[PWA] ⏰ WOULD reload page after debug info (disabled for debugging)')
+        // window.location.reload() // DISABLED for debugging
       }
     } catch (error) {
       console.error('[PWA] ❌ Update process failed:', error)
       // Fallback to simple reload
-      console.log('[PWA] 🔄 Fallback: simple reload')
-      window.location.reload()
+      console.log('[PWA] 🔄 Fallback: WOULD do simple reload (disabled for debugging)')
+      // window.location.reload() // DISABLED for debugging
     }
   },
 
