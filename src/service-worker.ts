@@ -43,15 +43,23 @@ sw.addEventListener('activate', (event: ExtendableEvent) => {
   event.waitUntil(sw.clients.claim())
 })
 
-// Standard message handling - minimal custom logic
+// Message handling for manual SW activation
 sw.addEventListener('message', (event: ExtendableMessageEvent) => {
-  console.log('[ServiceWorker] Message received:', event.data?.type)
+  console.log('[ServiceWorker] 📨 Message received:', {
+    type: event.data?.type,
+    timestamp: new Date().toISOString()
+  })
+
+  if (event.data?.type === 'SKIP_WAITING') {
+    console.log('[ServiceWorker] ⚡ SKIP_WAITING received - calling skipWaiting()')
+    sw.skipWaiting()
+    console.log('[ServiceWorker] ✅ skipWaiting() called')
+  }
 
   if (event.data?.type === 'GET_VERSION') {
+    console.log('[ServiceWorker] 📤 Sending version:', version)
     event.ports[0].postMessage({ version })
   }
-  
-  // Remove SKIP_WAITING handling - let SvelteKit manage SW lifecycle
 })
 
 console.log(`[ServiceWorker] Version ${version} ready`)
