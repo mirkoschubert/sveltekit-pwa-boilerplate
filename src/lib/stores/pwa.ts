@@ -204,6 +204,17 @@ export const pwaActions = {
         timestamp: new Date().toISOString()
       })
 
+      // First unregister any existing service worker
+      console.log('[PWA] 🗑️ Unregistering existing service worker first')
+      const existingRegistration = await navigator.serviceWorker.getRegistration()
+      if (existingRegistration) {
+        console.log('[PWA] 📤 Found existing SW registration:', existingRegistration.scope)
+        const unregistered = await existingRegistration.unregister()
+        console.log('[PWA] ✅ Existing SW unregistered:', unregistered)
+      } else {
+        console.log('[PWA] ℹ️ No existing SW registration found')
+      }
+
       // Register new service worker with version query parameter
       const swUrl = `/service-worker.js?v=${newVersion}`
       console.log('[PWA] 🔄 Registering new service worker:', swUrl)
