@@ -115,82 +115,55 @@ export const pwaActions = {
   async updateApp() {
     console.log('🔄 [PWA] ========== UPDATE PROCESS STARTED ==========')
     
-    // Debug current state before update
-    console.log('[PWA] 🔍 Pre-update state:', {
-      updatedCurrent: updated.current,
-      hasServiceWorker: !!navigator.serviceWorker,
-      controllerExists: !!navigator.serviceWorker.controller,
-      controllerState: navigator.serviceWorker.controller?.state,
-      timestamp: new Date().toISOString()
-    })
-
-    // Clear update state before update
+    // Clear update state immediately
     pwaState.update((state) => ({
       ...state,
       updateAvailable: false
     }))
 
     try {
-      // Get detailed registration info
       const registration = await navigator.serviceWorker.getRegistration()
-      console.log('[PWA] 🔍 Service Worker registration details:', {
+      
+      console.log('[PWA] 🔍 Service Worker registration state:', {
         hasRegistration: !!registration,
         hasActive: !!registration?.active,
         hasWaiting: !!registration?.waiting,
         hasInstalling: !!registration?.installing,
         activeState: registration?.active?.state,
         waitingState: registration?.waiting?.state,
-        installingState: registration?.installing?.state,
         activeScriptURL: registration?.active?.scriptURL,
         waitingScriptURL: registration?.waiting?.scriptURL
       })
 
       if (registration?.waiting) {
-        console.log('[PWA] ✅ Found waiting service worker - attempting activation')
-        registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+        console.log('[PWA] ✅ Found waiting service worker - sending SKIP_WAITING')
         
-        // Listen for controllerchange event
+        // Set up controller change listener before sending message
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('[PWA] 🔄 Controller changed - new SW should be active')
+          console.log('[PWA] 🎯 Controller changed - new SW is now active!')
+          console.log('[PWA] 🔄 WOULD reload page to use new service worker (disabled for debugging)')
+          // window.location.reload() // DISABLED for debugging
         }, { once: true })
         
-        // Wait a moment for activation, then reload
+        // Send skip waiting message
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+        console.log('[PWA] 📤 SKIP_WAITING message sent to waiting SW')
+        
+        // Backup timeout in case controllerchange doesn't fire
         setTimeout(() => {
-          console.log('[PWA] ⏰ Timeout reached - WOULD reload page (disabled for debugging)')
+          console.log('[PWA] ⏰ Backup timeout - WOULD reload anyway (disabled for debugging)')
           // window.location.reload() // DISABLED for debugging
-        }, 1000)
+        }, 3000)
+        
       } else {
-        // No waiting SW, debug this scenario
-        console.log('[PWA] ❌ No waiting SW found - investigating alternatives')
-        
-        // Try updated.check() and see what happens
-        console.log('[PWA] 🔍 Running updated.check()...')
-        const checkResult = await updated.check()
-        console.log('[PWA] 📊 updated.check() result:', {
-          checkResult,
-          updatedCurrentAfterCheck: updated.current
-        })
-        
-        // Try to get all registrations
-        const allRegistrations = await navigator.serviceWorker.getRegistrations()
-        console.log('[PWA] 🔍 All service worker registrations:', {
-          count: allRegistrations.length,
-          registrations: allRegistrations.map(reg => ({
-            scope: reg.scope,
-            hasActive: !!reg.active,
-            hasWaiting: !!reg.waiting,
-            hasInstalling: !!reg.installing,
-            activeScriptURL: reg.active?.scriptURL
-          }))
-        })
-        
-        console.log('[PWA] ⏰ WOULD reload page after debug info (disabled for debugging)')
+        console.log('[PWA] ❌ No waiting SW found - using fallback reload')
+        console.log('[PWA] 🔄 WOULD do simple page reload for update (disabled for debugging)')
         // window.location.reload() // DISABLED for debugging
       }
+      
     } catch (error) {
       console.error('[PWA] ❌ Update process failed:', error)
-      // Fallback to simple reload
-      console.log('[PWA] 🔄 Fallback: WOULD do simple reload (disabled for debugging)')
+      console.log('[PWA] 🔄 Fallback: WOULD do simple page reload (disabled for debugging)')
       // window.location.reload() // DISABLED for debugging
     }
   },
@@ -201,15 +174,111 @@ export const pwaActions = {
     // Use SvelteKit's native update check
     const hasUpdate = await updated.check()
     
-    pwaState.update((state) => ({
-      ...state,
-      updateAvailable: hasUpdate || updated.current
-    }))
-
     console.log('[PWA] SvelteKit update check result:', {
       hasUpdate,
       updatedCurrent: updated.current,
       updateAvailable: hasUpdate || updated.current
+    })
+
+    // If update detected, fetch and register new service worker
+    if (hasUpdate || updated.current) {
+      console.log('[PWA] 🎯 Update detected - fetching new service worker')
+      await this.fetchAndRegisterNewSW()
+    }
+  },
+
+  async fetchAndRegisterNewSW() {
+    try {
+      console.log('[PWA] 📥 Fetching version.json for new service worker')
+      
+      // Get the new version from version.json
+      const versionResponse = await fetch('/_app/version.json', { 
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
+      const versionData = await versionResponse.json()
+      const newVersion = versionData.version
+      
+      console.log('[PWA] 📊 Version info:', {
+        newVersion,
+        timestamp: new Date().toISOString()
+      })
+
+      // Register new service worker with version query parameter
+      const swUrl = `/service-worker.js?v=${newVersion}`
+      console.log('[PWA] 🔄 Registering new service worker:', swUrl)
+      
+      const registration = await navigator.serviceWorker.register(swUrl, {
+        updateViaCache: 'none' // Force fresh fetch
+      })
+      
+      console.log('[PWA] ✅ New SW registration initiated')
+      
+      // Wait for the new service worker to reach waiting state
+      await this.waitForWaitingSW(registration)
+      
+      console.log('[PWA] 🎯 New service worker ready and waiting for activation')
+      
+      // Now update the state to show the update is available
+      pwaState.update((state) => ({
+        ...state,
+        updateAvailable: true
+      }))
+      
+    } catch (error) {
+      console.error('[PWA] ❌ Failed to fetch new service worker:', error)
+      
+      // Fallback: still show update available (will use simple reload)
+      pwaState.update((state) => ({
+        ...state,
+        updateAvailable: true
+      }))
+    }
+  },
+
+  async waitForWaitingSW(registration: ServiceWorkerRegistration) {
+    return new Promise((resolve) => {
+      console.log('[PWA] ⏳ Waiting for service worker to reach waiting state')
+      
+      // Check if already waiting
+      if (registration.waiting) {
+        console.log('[PWA] ✅ Service worker already in waiting state')
+        resolve(registration.waiting)
+        return
+      }
+      
+      // Check if installing and will become waiting
+      if (registration.installing) {
+        console.log('[PWA] 🔄 Service worker installing - waiting for completion')
+        registration.installing.addEventListener('statechange', (e: Event) => {
+          if ((e.target as ServiceWorker).state === 'installed') {
+            console.log('[PWA] ✅ Service worker finished installing, now waiting')
+            resolve(registration.waiting)
+          }
+        })
+        return
+      }
+      
+      // Listen for new service worker to start installing
+      registration.addEventListener('updatefound', () => {
+        console.log('[PWA] 🔄 Update found - new service worker installing')
+        const newSW = registration.installing
+        
+        if (newSW) {
+          newSW.addEventListener('statechange', (e: Event) => {
+            if ((e.target as ServiceWorker).state === 'installed') {
+              console.log('[PWA] ✅ New service worker installed and waiting')
+              resolve(registration.waiting)
+            }
+          })
+        }
+      })
+      
+      // Timeout fallback (shouldn't happen but just in case)
+      setTimeout(() => {
+        console.log('[PWA] ⏰ Timeout waiting for SW - resolving anyway')
+        resolve(registration.waiting || null)
+      }, 10000)
     })
   },
 

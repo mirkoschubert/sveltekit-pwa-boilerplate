@@ -29,12 +29,13 @@ cleanupOutdatedCaches()
 sw.addEventListener('install', (event: ExtendableEvent) => {
   console.log('[ServiceWorker] Install - waiting for precaching to complete')
   
-  // Wait for precaching to complete before skipping waiting
+  // Wait for precaching to complete but DON'T automatically skip waiting
+  // Let the client control when to activate the new service worker
   event.waitUntil(
     (async () => {
       // Let Workbox finish precaching first
-      console.log('[ServiceWorker] Precaching completed, now skipping waiting')
-      sw.skipWaiting()
+      console.log('[ServiceWorker] Precaching completed - waiting for activation signal')
+      // No automatic skipWaiting() - wait for client message
     })()
   )
 })
@@ -43,12 +44,6 @@ sw.addEventListener('activate', (event: ExtendableEvent) => {
   console.log('[ServiceWorker] Activate - taking control')
   event.waitUntil(sw.clients.claim())
 })
-
-// Note: Workbox precacheAndRoute automatically handles fetch events for precached resources
-// We don't need a custom fetch handler as it would override Workbox functionality
-
-// Optional: Add runtime caching for non-precached requests only
-// Workbox will handle all precached assets automatically
 
 // Listen for messages from the client
 sw.addEventListener('message', (event: ExtendableMessageEvent) => {
