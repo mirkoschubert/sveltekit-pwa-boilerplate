@@ -113,16 +113,37 @@ export const pwaActions = {
   },
 
   async updateApp() {
-    console.log('[PWA] Starting app update process - reloading page')
+    console.log('[PWA] Starting app update process')
 
-    // Clear update state before reload
+    // Clear update state before update
     pwaState.update((state) => ({
       ...state,
       updateAvailable: false
     }))
 
-    // Simple reload - let SvelteKit handle the service worker update
-    window.location.reload()
+    try {
+      // Check if there's a waiting service worker and activate it
+      const registration = await navigator.serviceWorker.getRegistration()
+      if (registration?.waiting) {
+        console.log('[PWA] Found waiting service worker - activating it')
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+        
+        // Wait a moment for activation, then reload
+        setTimeout(() => {
+          console.log('[PWA] Reloading page after SW activation')
+          window.location.reload()
+        }, 500)
+      } else {
+        // No waiting SW, try manual check and reload
+        console.log('[PWA] No waiting SW - running updated.check() then reload')
+        await updated.check()
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('[PWA] Update process failed:', error)
+      // Fallback to simple reload
+      window.location.reload()
+    }
   },
 
   async checkForUpdates() {
@@ -154,10 +175,38 @@ export const pwaActions = {
   }
 }
 
-// Monitor app state updates
+// Reactive wrapper for SvelteKit's updated.current (since it's not reactive in stores)
 if (browser) {
-  // Log initial updated state
-  console.log('[PWA] Initial app state updated value:', updated.current)
+  let lastUpdatedState = updated.current
+  console.log('[PWA] Initial app state updated value:', lastUpdatedState)
+  
+  // Monitor updated.current changes with interval (since it's not reactive in plain JS)
+  const monitorUpdatedState = () => {
+    const currentState = updated.current
+    
+    if (currentState !== lastUpdatedState) {
+      console.log('[PWA] SvelteKit updated.current changed:', {
+        from: lastUpdatedState,
+        to: currentState,
+        timestamp: new Date().toISOString()
+      })
+      
+      lastUpdatedState = currentState
+      
+      // If updated.current became true, trigger update notification
+      if (currentState === true) {
+        console.log('[PWA] Automatic update detection triggered')
+        pwaState.update((state) => ({
+          ...state,
+          updateAvailable: true
+        }))
+      }
+    }
+  }
+  
+  // Check every 2 seconds for updated.current changes
+  setInterval(monitorUpdatedState, 2000)
+  console.log('[PWA] Started monitoring updated.current changes (every 2 seconds)')
 }
 
 // Auto-initialize when module is imported
