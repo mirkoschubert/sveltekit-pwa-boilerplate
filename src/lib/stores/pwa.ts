@@ -113,7 +113,16 @@ export const pwaActions = {
   },
 
   async updateApp() {
-    console.log('[PWA] Starting app update process')
+    console.log('🔄 [PWA] ========== UPDATE PROCESS STARTED ==========')
+    
+    // Debug current state before update
+    console.log('[PWA] 🔍 Pre-update state:', {
+      updatedCurrent: updated.current,
+      hasServiceWorker: !!navigator.serviceWorker,
+      controllerExists: !!navigator.serviceWorker.controller,
+      controllerState: navigator.serviceWorker.controller?.state,
+      timestamp: new Date().toISOString()
+    })
 
     // Clear update state before update
     pwaState.update((state) => ({
@@ -122,26 +131,66 @@ export const pwaActions = {
     }))
 
     try {
-      // Check if there's a waiting service worker and activate it
+      // Get detailed registration info
       const registration = await navigator.serviceWorker.getRegistration()
+      console.log('[PWA] 🔍 Service Worker registration details:', {
+        hasRegistration: !!registration,
+        hasActive: !!registration?.active,
+        hasWaiting: !!registration?.waiting,
+        hasInstalling: !!registration?.installing,
+        activeState: registration?.active?.state,
+        waitingState: registration?.waiting?.state,
+        installingState: registration?.installing?.state,
+        activeScriptURL: registration?.active?.scriptURL,
+        waitingScriptURL: registration?.waiting?.scriptURL
+      })
+
       if (registration?.waiting) {
-        console.log('[PWA] Found waiting service worker - activating it')
+        console.log('[PWA] ✅ Found waiting service worker - attempting activation')
         registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+        
+        // Listen for controllerchange event
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('[PWA] 🔄 Controller changed - new SW should be active')
+        }, { once: true })
         
         // Wait a moment for activation, then reload
         setTimeout(() => {
-          console.log('[PWA] Reloading page after SW activation')
+          console.log('[PWA] ⏰ Timeout reached - reloading page')
           window.location.reload()
-        }, 500)
+        }, 1000)
       } else {
-        // No waiting SW, try manual check and reload
-        console.log('[PWA] No waiting SW - running updated.check() then reload')
-        await updated.check()
+        // No waiting SW, debug this scenario
+        console.log('[PWA] ❌ No waiting SW found - investigating alternatives')
+        
+        // Try updated.check() and see what happens
+        console.log('[PWA] 🔍 Running updated.check()...')
+        const checkResult = await updated.check()
+        console.log('[PWA] 📊 updated.check() result:', {
+          checkResult,
+          updatedCurrentAfterCheck: updated.current
+        })
+        
+        // Try to get all registrations
+        const allRegistrations = await navigator.serviceWorker.getRegistrations()
+        console.log('[PWA] 🔍 All service worker registrations:', {
+          count: allRegistrations.length,
+          registrations: allRegistrations.map(reg => ({
+            scope: reg.scope,
+            hasActive: !!reg.active,
+            hasWaiting: !!reg.waiting,
+            hasInstalling: !!reg.installing,
+            activeScriptURL: reg.active?.scriptURL
+          }))
+        })
+        
+        console.log('[PWA] ⏰ Reloading page after debug info')
         window.location.reload()
       }
     } catch (error) {
-      console.error('[PWA] Update process failed:', error)
+      console.error('[PWA] ❌ Update process failed:', error)
       // Fallback to simple reload
+      console.log('[PWA] 🔄 Fallback: simple reload')
       window.location.reload()
     }
   },
@@ -195,11 +244,18 @@ if (browser) {
       
       // If updated.current became true, trigger update notification
       if (currentState === true) {
-        console.log('[PWA] Automatic update detection triggered')
+        console.log('🎯 [PWA] Automatic update detection triggered')
+        console.log('[PWA] 🔍 Debug info at update detection:', {
+          updatedCurrent: updated.current,
+          hasServiceWorker: !!navigator.serviceWorker,
+          controllerExists: !!navigator.serviceWorker.controller
+        })
+        
         pwaState.update((state) => ({
           ...state,
           updateAvailable: true
         }))
+        console.log('[PWA] ✅ PWA state updated - toast should appear')
       }
     }
   }

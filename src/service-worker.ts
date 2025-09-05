@@ -52,13 +52,20 @@ sw.addEventListener('activate', (event: ExtendableEvent) => {
 
 // Listen for messages from the client
 sw.addEventListener('message', (event: ExtendableMessageEvent) => {
+  console.log('[ServiceWorker] 📨 Message received:', {
+    type: event.data?.type,
+    data: event.data,
+    timestamp: new Date().toISOString()
+  })
+
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[ServiceWorker] Received SKIP_WAITING message')
+    console.log('[ServiceWorker] ⚡ SKIP_WAITING received - calling skipWaiting()')
     sw.skipWaiting()
+    console.log('[ServiceWorker] ✅ skipWaiting() called')
   }
 
   if (event.data && event.data.type === 'GET_VERSION') {
-    console.log('[ServiceWorker] Sending version:', version)
+    console.log('[ServiceWorker] 📤 Sending version:', version)
     event.ports[0].postMessage({ version })
   }
 })
