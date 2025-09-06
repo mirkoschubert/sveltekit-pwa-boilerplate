@@ -8,7 +8,7 @@
   import { browser } from '$app/environment'
   import { beforeNavigate } from '$app/navigation'
   import { updated } from '$app/state'
-  import { pwaActions } from '$lib/stores/pwa'
+  import { pwaActions, pwaState } from '$lib/stores/pwa'
 
   let { children } = $props()
   let version: string
@@ -33,20 +33,55 @@
     navigator.serviceWorker.register(`/service-worker.js?v=${version}`).then(
       (registration) => {
         console.log(
-          '[PWA] Service worker registered successfully from +layout.svelte', registration
+          '[PWA] Service worker registered successfully from +layout.svelte',
+          version, registration
         )
+
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+        }
       },
       (error) => {
         console.error(error)
       }
     )
 
-    // Then initialize PWA actions (event listeners, state setup)
+    // Initialize PWA actions (event listeners, state setup)
     pwaActions.initialize()
 
     console.log(
       '[PWA] SvelteKit native polling enabled - updates handled automatically'
     )
+  })
+
+  // Watch for updates with $effect and re-register service worker
+  $effect(() => {
+    if (updated.current && browser && version) {
+      console.log('🎯 [PWA] Update detected - fetching new version')
+      
+      // Use async function inside $effect
+      const handleUpdate = async () => {
+        try {
+          const response = await fetch('_app/version.json')
+          const data = await response.json()
+          const newVersion = data.version
+          
+          console.log(`[PWA] Re-registering service worker with new version: ${newVersion}`)
+          
+          await navigator.serviceWorker.register(`/service-worker.js?v=${newVersion}`)
+          
+          pwaState.update((state) => ({
+            ...state,
+            updateAvailable: true
+          }))
+          console.log('[PWA] ✅ Service worker re-registered for update')
+        } catch (error) {
+          console.error('[PWA] Failed to re-register service worker:', error)
+        }
+      }
+      
+      handleUpdate()
+    }
   })
 
   beforeNavigate(({ willUnload, to }) => {

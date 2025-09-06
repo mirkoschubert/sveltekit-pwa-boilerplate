@@ -197,50 +197,6 @@ export const pwaActions = {
   }
 }
 
-// Reactive wrapper for SvelteKit's updated.current (since it's not reactive in stores)
-if (browser) {
-  let lastUpdatedState = updated.current
-  console.log('[PWA] Initial app state updated value:', lastUpdatedState)
-
-  // Monitor updated.current changes with interval (since it's not reactive in plain JS)
-  const monitorUpdatedState = async () => {
-    const currentState = updated.current
-
-    if (currentState !== lastUpdatedState) {
-      console.log('[PWA] SvelteKit updated.current changed:', {
-        from: lastUpdatedState,
-        to: currentState,
-        timestamp: new Date().toISOString()
-      })
-
-      lastUpdatedState = currentState
-
-      // If updated.current became true, trigger SW update + notification
-      if (currentState === true) {
-        console.log('🎯 [PWA] Automatic update detection triggered')
-        console.log('[PWA] 🔍 Debug info at update detection:', {
-          updatedCurrent: updated.current,
-          hasServiceWorker: !!navigator.serviceWorker,
-          controllerExists: !!navigator.serviceWorker.controller
-        })
-
-        // Trigger manual service worker update (SvelteKit doesn't do this!)
-        await pwaActions.triggerServiceWorkerUpdate()
-
-        pwaState.update((state) => ({
-          ...state,
-          updateAvailable: true
-        }))
-        console.log('[PWA] ✅ PWA state updated - toast should appear')
-      }
-    }
-  }
-
-  // Check every 2 seconds for updated.current changes
-  setInterval(monitorUpdatedState, 2000)
-  console.log(
-    '[PWA] Started monitoring updated.current changes (every 2 seconds)'
-  )
-}
+// Note: Update monitoring is now handled in +layout.svelte
 
 // Note: PWA actions will be initialized manually from +layout.svelte
