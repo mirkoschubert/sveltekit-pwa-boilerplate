@@ -11,11 +11,16 @@
   import { pwaActions } from '$lib/stores/pwa'
 
   let { children } = $props()
+  let version: string
 
   onMount(async () => {
     if (!browser || !('serviceWorker' in navigator)) {
       return
     }
+
+    const response = await fetch('/version.json')
+    const data = await response.json()
+    version = data.version
 
     // Only register service worker in production
     if (import.meta.env.DEV) {
@@ -24,24 +29,24 @@
       return
     }
 
-    try {
-      // Register service worker first
-      await navigator.serviceWorker.register('/service-worker.js')
-      console.log(
-        '[PWA] Service worker registered successfully from +layout.svelte'
-      )
+    // Register service worker first
+    navigator.serviceWorker.register(`/service-worker.js?v=${version}`).then(
+      (registration) => {
+        console.log(
+          '[PWA] Service worker registered successfully from +layout.svelte', registration
+        )
+      },
+      (error) => {
+        console.error(error)
+      }
+    )
 
-      // Then initialize PWA actions (event listeners, state setup)
-      pwaActions.initialize()
+    // Then initialize PWA actions (event listeners, state setup)
+    pwaActions.initialize()
 
-      console.log(
-        '[PWA] SvelteKit native polling enabled - updates handled automatically'
-      )
-    } catch (error) {
-      console.error('Service Worker registration failed:', error)
-      // Still initialize PWA actions even if SW registration fails
-      pwaActions.initialize()
-    }
+    console.log(
+      '[PWA] SvelteKit native polling enabled - updates handled automatically'
+    )
   })
 
   beforeNavigate(({ willUnload, to }) => {
