@@ -8,6 +8,9 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter(),
+    serviceWorker: {
+      register: false
+    },
     version: {
       // Enable SvelteKit's native service worker polling (30 seconds for testing)
       pollInterval: 30000
