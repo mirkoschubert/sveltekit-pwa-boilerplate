@@ -18,7 +18,7 @@
       return
     }
 
-    const response = await fetch('/version.json')
+    const response = await fetch('_app/version.json')
     const data = await response.json()
     version = data.version
 
