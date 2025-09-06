@@ -6,6 +6,8 @@
   import { ModeWatcher } from 'mode-watcher'
   import { onMount } from 'svelte'
   import { browser } from '$app/environment'
+  import { beforeNavigate } from '$app/navigation'
+  import { updated } from '$app/state'
   import { pwaActions } from '$lib/stores/pwa'
 
   let { children } = $props()
@@ -39,6 +41,12 @@
       console.error('Service Worker registration failed:', error)
       // Still initialize PWA actions even if SW registration fails
       pwaActions.initialize()
+    }
+  })
+
+  beforeNavigate(({ willUnload, to }) => {
+    if (updated.current && !willUnload && to?.url) {
+      location.href = to.url.href
     }
   })
 </script>
