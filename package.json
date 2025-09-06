@@ -61,5 +61,10 @@
       "@tailwindcss/oxide",
       "esbuild"
     ]
+  },
+  "dependencies": {
+    "workbox-expiration": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0"
   }
 }
