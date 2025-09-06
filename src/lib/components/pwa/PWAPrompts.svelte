@@ -14,16 +14,14 @@
       showOfflineBanner = state.isOffline
 
       // Show update toast when SvelteKit detects update
-      if (
-        state.updateAvailable &&
-        !showUpdatePrompt
-      ) {
+      if (state.updateAvailable && !showUpdatePrompt) {
         showUpdatePrompt = true
 
         console.log('[PWA] Showing update notification from SvelteKit')
 
         const updateMessage = 'App update available!'
-        const updateDescription = 'A new version is available. Update for the latest features.'
+        const updateDescription =
+          'A new version is available. Update for the latest features.'
 
         toast(updateMessage, {
           description: updateDescription,

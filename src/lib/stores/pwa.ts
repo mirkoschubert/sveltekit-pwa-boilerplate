@@ -36,14 +36,8 @@ export const pwaState = writable<PWAState>(initialState)
 let deferredPrompt: BeforeInstallPromptEvent | null = null
 
 export const pwaActions = {
-  async initialize() {
+  initialize() {
     if (!browser || !('serviceWorker' in navigator)) {
-      return
-    }
-
-    // Only register service worker in production
-    if (import.meta.env.DEV) {
-      console.log('[PWA] Service worker disabled in development')
       return
     }
 
@@ -78,23 +72,16 @@ export const pwaActions = {
     window.addEventListener('offline', updateOnlineStatus)
     updateOnlineStatus()
 
-    // Register service worker (let SvelteKit handle updates)
-    try {
-      await navigator.serviceWorker.register('/service-worker.js')
-      console.log('[PWA] Service worker registered successfully')
+    // Set initial state
+    pwaState.update((state) => ({
+      ...state,
+      isInstalled,
+      updateAvailable: updated.current
+    }))
 
-      pwaState.update((state) => ({
-        ...state,
-        isInstalled,
-        updateAvailable: updated.current // Use SvelteKit's native update detection
-      }))
-
-      // Note: SvelteKit's native polling will handle update detection
-      // We just need to listen to SvelteKit's updated state
-      console.log('[PWA] SvelteKit native polling enabled - updates handled automatically')
-    } catch (error) {
-      console.error('Service Worker registration failed:', error)
-    }
+    console.log(
+      '[PWA] PWA actions initialized - service worker registration handled externally'
+    )
   },
 
   async install() {
@@ -114,15 +101,15 @@ export const pwaActions = {
 
   async triggerServiceWorkerUpdate() {
     console.log('[PWA] 🔄 Manually triggering service worker update')
-    
+
     try {
       const registration = await navigator.serviceWorker.getRegistration()
-      
+
       if (registration) {
         console.log('[PWA] 📍 Found SW registration, calling update()')
         await registration.update()
         console.log('[PWA] ✅ Service worker update triggered successfully')
-        
+
         // Check if we now have a waiting service worker
         if (registration.waiting) {
           console.log('[PWA] 🎯 New service worker is waiting for activation')
@@ -132,7 +119,6 @@ export const pwaActions = {
       } else {
         console.log('[PWA] ❌ No service worker registration found')
       }
-      
     } catch (error) {
       console.error('[PWA] ❌ Failed to trigger service worker update:', error)
     }
@@ -140,7 +126,7 @@ export const pwaActions = {
 
   async updateApp() {
     console.log('[PWA] 🔄 Starting app update process')
-    
+
     // Clear update state
     pwaState.update((state) => ({
       ...state,
@@ -149,32 +135,34 @@ export const pwaActions = {
 
     try {
       const registration = await navigator.serviceWorker.getRegistration()
-      
+
       if (registration?.waiting) {
         console.log('[PWA] ✅ Found waiting service worker - activating it')
-        
+
         // Listen for controller change before sending skip waiting
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('[PWA] 🎯 Controller changed - new SW is now active!')
-          console.log('[PWA] 🔄 Reloading page to use new version')
-          window.location.reload()
-        }, { once: true })
-        
+        navigator.serviceWorker.addEventListener(
+          'controllerchange',
+          () => {
+            console.log('[PWA] 🎯 Controller changed - new SW is now active!')
+            console.log('[PWA] 🔄 Reloading page to use new version')
+            window.location.reload()
+          },
+          { once: true }
+        )
+
         // Send skip waiting message
         registration.waiting.postMessage({ type: 'SKIP_WAITING' })
         console.log('[PWA] 📤 SKIP_WAITING message sent to waiting SW')
-        
+
         // Backup timeout
         setTimeout(() => {
           console.log('[PWA] ⏰ Backup timeout - reloading anyway')
           window.location.reload()
         }, 3000)
-        
       } else {
         console.log('[PWA] ❌ No waiting SW - doing simple reload')
         window.location.reload()
       }
-      
     } catch (error) {
       console.error('[PWA] ❌ Update process failed:', error)
       window.location.reload()
@@ -186,7 +174,7 @@ export const pwaActions = {
 
     // Use SvelteKit's native update check - it handles SW updates automatically
     const hasUpdate = await updated.check()
-    
+
     console.log('[PWA] SvelteKit native update check:', {
       hasUpdate,
       updatedCurrent: updated.current
@@ -198,7 +186,6 @@ export const pwaActions = {
       updateAvailable: hasUpdate || updated.current
     }))
   },
-
 
   // Reset update state (useful for debugging or after failed updates)
   resetUpdateState() {
@@ -214,20 +201,20 @@ export const pwaActions = {
 if (browser) {
   let lastUpdatedState = updated.current
   console.log('[PWA] Initial app state updated value:', lastUpdatedState)
-  
+
   // Monitor updated.current changes with interval (since it's not reactive in plain JS)
   const monitorUpdatedState = async () => {
     const currentState = updated.current
-    
+
     if (currentState !== lastUpdatedState) {
       console.log('[PWA] SvelteKit updated.current changed:', {
         from: lastUpdatedState,
         to: currentState,
         timestamp: new Date().toISOString()
       })
-      
+
       lastUpdatedState = currentState
-      
+
       // If updated.current became true, trigger SW update + notification
       if (currentState === true) {
         console.log('🎯 [PWA] Automatic update detection triggered')
@@ -236,10 +223,10 @@ if (browser) {
           hasServiceWorker: !!navigator.serviceWorker,
           controllerExists: !!navigator.serviceWorker.controller
         })
-        
+
         // Trigger manual service worker update (SvelteKit doesn't do this!)
         await pwaActions.triggerServiceWorkerUpdate()
-        
+
         pwaState.update((state) => ({
           ...state,
           updateAvailable: true
@@ -248,13 +235,12 @@ if (browser) {
       }
     }
   }
-  
+
   // Check every 2 seconds for updated.current changes
   setInterval(monitorUpdatedState, 2000)
-  console.log('[PWA] Started monitoring updated.current changes (every 2 seconds)')
+  console.log(
+    '[PWA] Started monitoring updated.current changes (every 2 seconds)'
+  )
 }
 
-// Auto-initialize when module is imported
-if (browser) {
-  pwaActions.initialize()
-}
+// Note: PWA actions will be initialized manually from +layout.svelte

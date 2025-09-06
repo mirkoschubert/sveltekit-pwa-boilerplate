@@ -7,19 +7,22 @@
 ## Problem Analysis from v3 Testing
 
 ### Critical Discovery:
+
 - ❌ **Over-engineering**: Fighting against SvelteKit's native SW management
 - ❌ **Manual SW registration**: Query parameters, unregistration, complex lifecycle
 - ❌ **Custom update logic**: Waiting SW management, SKIP_WAITING messages
 - ❌ **Framework conflicts**: Working against SvelteKit instead of with it
 
 ### Root Cause:
+
 According to [SvelteKit PR #12448](https://github.com/sveltejs/kit/pull/12448) and official documentation, SvelteKit should handle service worker updates **automatically**. We were implementing complex workarounds for problems that the framework already solves.
 
 ## v4 Solution: Trust the Framework
 
 ### Strategy: Embrace SvelteKit's Automatic SW Management
+
 - ✅ **Let SvelteKit auto-register** service workers
-- ✅ **Let SvelteKit handle** SW lifecycle and updates  
+- ✅ **Let SvelteKit handle** SW lifecycle and updates
 - ✅ **Use native polling** - `kit.version.pollInterval`
 - ✅ **Simple state management** - react to `updated.current`
 - ✅ **Minimal custom logic** - just show toast and reload
@@ -41,6 +44,7 @@ export default {
 ```
 
 **How it works:**
+
 - SvelteKit polls for updates every 30 seconds
 - Automatically registers and updates service worker
 - Sets `updated.current` to `true` when new version detected
@@ -48,6 +52,7 @@ export default {
 ### 2. Simplified PWA State Management
 
 **Before v4 (Complex Manual Management)**:
+
 ```javascript
 async fetchAndRegisterNewSW() {
   // 60+ lines of manual SW registration
@@ -60,11 +65,12 @@ async fetchAndRegisterNewSW() {
 ```
 
 **v4 (Trust SvelteKit)**:
+
 ```javascript
 async checkForUpdates() {
   // Simple SvelteKit integration
   const hasUpdate = await updated.check()
-  
+
   pwaState.update((state) => ({
     ...state,
     updateAvailable: hasUpdate || updated.current
@@ -75,6 +81,7 @@ async checkForUpdates() {
 ### 3. Minimal Update Flow
 
 **Before v4 (Complex SW Lifecycle)**:
+
 ```javascript
 async updateApp() {
   // 50+ lines of manual SW activation
@@ -87,6 +94,7 @@ async updateApp() {
 ```
 
 **v4 (Simple Reload)**:
+
 ```javascript
 async updateApp() {
   // Trust SvelteKit to handle SW activation
@@ -98,6 +106,7 @@ async updateApp() {
 ### 4. Standard Service Worker
 
 **Before v4 (Custom Lifecycle Control)**:
+
 ```javascript
 sw.addEventListener('install', (event) => {
   // Custom skipWaiting logic
@@ -115,6 +124,7 @@ sw.addEventListener('message', (event) => {
 ```
 
 **v4 (Standard SvelteKit Pattern)**:
+
 ```javascript
 sw.addEventListener('install', (event) => {
   console.log('[ServiceWorker] Install - precaching assets')
@@ -132,10 +142,11 @@ sw.addEventListener('message', (event) => {
 ## How v4 Works (Framework-Native)
 
 ### Complete Update Flow:
+
 1. **SvelteKit polls automatically** → Checks for new version every 30s
 2. **Framework detects update** → `updated.current` becomes `true`
 3. **PWA store reacts** → Shows "Update available" toast
-4. **User clicks "Update Now"** → Simple `window.location.reload()`  
+4. **User clicks "Update Now"** → Simple `window.location.reload()`
 5. **SvelteKit handles SW lifecycle** → Automatically activates new SW
 6. **Cache updates automatically** → Framework manages versioning
 7. **Clean reload with new version** → No manual intervention needed
@@ -152,6 +163,7 @@ sw.addEventListener('message', (event) => {
 ## Code Comparison: Before vs After
 
 ### Before v4: ~150 Lines of Complex Logic
+
 - Manual service worker registration with query parameters
 - Custom version fetching and comparison
 - Waiting SW management and state tracking
@@ -159,7 +171,8 @@ sw.addEventListener('message', (event) => {
 - Complex controllerchange event listeners
 - Unregistration and re-registration logic
 
-### After v4: ~15 Lines of Simple Logic  
+### After v4: ~15 Lines of Simple Logic
+
 - SvelteKit native polling configuration
 - Basic `updated.check()` integration
 - Simple state updates based on `updated.current`
@@ -172,22 +185,26 @@ sw.addEventListener('message', (event) => {
 ### After Deployment (Automatic):
 
 **1. SvelteKit Polling (background)**:
+
 ```
 [PWA] SvelteKit native update check: {hasUpdate: true, updatedCurrent: true}
 ```
 
 **2. Toast Notification**:
+
 ```
 [PWA] Showing update notification from SvelteKit
 ```
 
 **3. User Clicks "Update Now"**:
+
 ```
 [PWA] Starting simple update process
 [PWA] Reloading to activate new version
 ```
 
 **4. After Reload**:
+
 - SvelteKit automatically activates new service worker
 - Cache automatically updates with new version
 - No manual intervention required
@@ -196,11 +213,13 @@ sw.addEventListener('message', (event) => {
 ## Files Modified in v4
 
 ### Core Changes:
+
 - `src/lib/stores/pwa.ts` - Simplified to basic SvelteKit integration
 - `src/service-worker.ts` - Reset to standard SvelteKit pattern
 - `svelte.config.js` - Keep native polling configuration
 
 ### What's Removed:
+
 - ❌ Manual service worker registration with query parameters
 - ❌ Version.json fetching and comparison
 - ❌ Waiting SW management and timeout handling
@@ -210,6 +229,7 @@ sw.addEventListener('message', (event) => {
 - ❌ Custom SW lifecycle control
 
 ### What's Added:
+
 - ✅ Trust in SvelteKit's automatic SW management
 - ✅ Simplified state management
 - ✅ Framework-native update flow
@@ -219,6 +239,7 @@ sw.addEventListener('message', (event) => {
 ## Production Deployment
 
 ### Configuration:
+
 ```javascript
 // svelte.config.js - Production ready
 kit: {
@@ -229,6 +250,7 @@ kit: {
 ```
 
 ### Success Metrics:
+
 - Service worker updates work automatically without intervention
 - `updated.current` becomes `true` when new versions are detected
 - Page reload successfully activates new service worker version
@@ -238,6 +260,7 @@ kit: {
 - Framework handles all edge cases
 
 ### Performance Benefits:
+
 - **90% code reduction** (~150 → ~15 lines)
 - **Framework-native behavior** (no custom polling or lifecycle management)
 - **Reduced bundle size** (removed complex update logic)
@@ -251,13 +274,15 @@ kit: {
 ## Why This Approach Works
 
 Based on SvelteKit PR #12448, the framework automatically:
+
 1. **Registers service workers** when `src/service-worker.js` exists
 2. **Polls for updates** based on `kit.version.pollInterval`
-3. **Updates service workers** when new versions are detected  
+3. **Updates service workers** when new versions are detected
 4. **Manages SW lifecycle** including activation and cache updates
 5. **Sets `updated.current`** to signal app updates available
 
 Our role is simply to:
+
 1. **Configure polling interval** in `svelte.config.js`
 2. **React to `updated.current`** to show user notifications
 3. **Reload on user action** to activate updates

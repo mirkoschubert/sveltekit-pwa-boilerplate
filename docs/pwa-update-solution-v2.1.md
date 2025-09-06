@@ -7,23 +7,28 @@
 ## Critical v2.0 Regression Identified
 
 ### The Problem with v2.0:
+
 During testing, v2.0 showed **NO revision numbers in cache** and **no service worker updates detected**.
 
 **Root Cause**: I incorrectly changed `revision: version` to `revision: null` in v2.0.
+
 - ❌ **v2.0**: `revision: null` → Workbox generated NO revisions → No cache busting
 - ✅ **v1.x**: `revision: version` → Workbox generated proper revisions → Cache busting worked
 
 ### What Was Actually Broken in v1.x:
+
 1. **Query parameter SW registration** - `/service-worker.js?v=123` (doesn't work on Vercel)
 2. **Custom fetch handler** - Overrode Workbox functionality
 
 ### What WASN'T Broken in v1.x:
+
 - ✅ **Revision generation** - `revision: version` worked perfectly
 - ✅ **Workbox precaching** - Cache busting functioned correctly
 
 ## v2.1 Hybrid Solution
 
 ### Strategy: Best of Both Worlds
+
 - ✅ **Keep v1.x**: Working revision system (`revision: version`)
 - ✅ **Keep v2.0**: Standard SW registration (no query parameters)
 - ✅ **Keep v2.0**: No custom fetch handler (let Workbox handle everything)
@@ -34,14 +39,14 @@ During testing, v2.0 showed **NO revision numbers in cache** and **no service wo
 ### 1. Restored Working Workbox Revisions (`src/service-worker.ts`)
 
 **v2.0 (Broken)**:
+
 ```javascript
 // NO revisions generated!
-precacheAndRoute([
-  ...build.map(url => ({ url, revision: null }))
-])
+precacheAndRoute([...build.map((url) => ({ url, revision: null }))])
 ```
 
 **v2.1 (Fixed)**:
+
 ```javascript
 // Proper revision generation restored
 const precacheList = [...build, ...files, ...prerendered].map((url) => ({
@@ -55,17 +60,19 @@ precacheAndRoute(precacheList)
 ### 2. Keep v2.0 Fixes That Work (`src/lib/stores/pwa.ts`)
 
 **Standard SW Registration** (no query parameters):
+
 ```javascript
 // This works on Vercel
 swRegistration = await navigator.serviceWorker.register('/service-worker.js')
 ```
 
 **Content-based Update Detection**:
+
 ```javascript
 swRegistration.addEventListener('updatefound', () => {
   // Trust browser's native update detection
   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-    pwaState.update(state => ({ ...state, updateAvailable: true }))
+    pwaState.update((state) => ({ ...state, updateAvailable: true }))
   }
 })
 ```
@@ -73,6 +80,7 @@ swRegistration.addEventListener('updatefound', () => {
 ### 3. Fast Testing Setup
 
 **30-Second Polling** (changed from 15 minutes):
+
 ```javascript
 // For testing - change back to 15min in production
 const pollInterval = 30 * 1000 // 30 seconds for testing
@@ -82,6 +90,7 @@ console.log('[PWA] Started version polling (every 30 seconds - testing mode)')
 ## How v2.1 Works
 
 ### Update Flow:
+
 1. **Developer changes CSS/code** → File content changes
 2. **Build process** → SvelteKit generates new version hash
 3. **Service Worker build** → All assets get same new revision (`version`)
@@ -93,6 +102,7 @@ console.log('[PWA] Started version polling (every 30 seconds - testing mode)')
 9. **New content served** → Workbox serves updated cached files with new revisions
 
 ### Why v2.1 Should Work:
+
 - **Revision numbers**: Visible in cache for proper cache busting
 - **Service worker updates**: Browser detects content changes
 - **Vercel compatible**: No query parameter workarounds
@@ -102,7 +112,9 @@ console.log('[PWA] Started version polling (every 30 seconds - testing mode)')
 ## Expected Test Results
 
 ### After Deployment:
+
 1. **Cache inspection**: Should show revision numbers like:
+
    ```
    precache-v2-https://your-app.vercel.app/
    ├── /_app/immutable/assets/0.CdOmLlD8.css (revision: "1757123456789")
@@ -111,6 +123,7 @@ console.log('[PWA] Started version polling (every 30 seconds - testing mode)')
    ```
 
 2. **Update detection**: After color change + redeploy:
+
    ```
    [PWA] Service worker registered successfully
    [PWA] New service worker detected and installing
@@ -118,7 +131,7 @@ console.log('[PWA] Started version polling (every 30 seconds - testing mode)')
    [PWA] Version check result: {current: '123', latest: '456', hasVersionDifference: true}
    ```
 
-3. **User experience**: 
+3. **User experience**:
    - Toast appears: "App update available!"
    - Click "Update Now" → Page reloads with new colors
    - No multiple installations or redundant states
@@ -126,10 +139,12 @@ console.log('[PWA] Started version polling (every 30 seconds - testing mode)')
 ## Files Modified in v2.1
 
 ### Core Changes:
+
 - `src/service-worker.ts` - Restored `revision: version` for working cache busting
 - `src/lib/stores/pwa.ts` - Changed polling from 15min → 30sec for testing
 
 ### What Works from Previous Versions:
+
 - ✅ **From v1.x**: Version-based revision generation
 - ✅ **From v2.0**: Standard SW registration (no query params)
 - ✅ **From v2.0**: No custom fetch handler conflicts
@@ -138,13 +153,16 @@ console.log('[PWA] Started version polling (every 30 seconds - testing mode)')
 ## Production Deployment Notes
 
 ### Before Production:
+
 **Change polling back to 15 minutes**:
+
 ```javascript
 const pollInterval = 15 * 60 * 1000 // 15 minutes for production
 console.log('[PWA] Started version polling (every 15 minutes)')
 ```
 
 ### Monitoring Points:
+
 - Cache contains proper revision numbers
 - Service worker updates detected on real content changes
 - No false positives from version polling

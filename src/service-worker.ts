@@ -28,7 +28,7 @@ cleanupOutdatedCaches()
 
 sw.addEventListener('install', (event: ExtendableEvent) => {
   console.log('[ServiceWorker] Install - precaching assets')
-  
+
   // Standard SvelteKit pattern - let framework handle lifecycle
   event.waitUntil(
     (async () => {
@@ -51,7 +51,9 @@ sw.addEventListener('message', (event: ExtendableMessageEvent) => {
   })
 
   if (event.data?.type === 'SKIP_WAITING') {
-    console.log('[ServiceWorker] ⚡ SKIP_WAITING received - calling skipWaiting()')
+    console.log(
+      '[ServiceWorker] ⚡ SKIP_WAITING received - calling skipWaiting()'
+    )
     sw.skipWaiting()
     console.log('[ServiceWorker] ✅ skipWaiting() called')
   }
