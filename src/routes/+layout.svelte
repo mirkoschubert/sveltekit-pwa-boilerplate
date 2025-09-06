@@ -30,7 +30,9 @@
     }
 
     // Register service worker first
-    navigator.serviceWorker.register(`/service-worker.js?v=${version}`).then(
+    navigator.serviceWorker.register(`/service-worker.js?v=${version}`, {
+      updateViaCache: 'none'
+    }).then(
       (registration) => {
         console.log(
           '[PWA] Service worker registered successfully from +layout.svelte',
@@ -68,7 +70,9 @@
           
           console.log(`[PWA] Re-registering service worker with new version: ${newVersion}`)
           
-          await navigator.serviceWorker.register(`/service-worker.js?v=${newVersion}`)
+          await navigator.serviceWorker.register(`/service-worker.js?v=${newVersion}`, {
+            updateViaCache: 'none'
+          })
           
           pwaState.update((state) => ({
             ...state,
