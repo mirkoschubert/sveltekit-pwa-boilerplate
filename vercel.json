@@ -6,7 +6,7 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "private, max-age=0"
+          "value": "no-store"
         }
       ]
     },
