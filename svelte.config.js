@@ -17,6 +17,7 @@ const config = {
     adapter,
     version: {
       // Enable SvelteKit's native service worker polling (30 seconds for testing)
+      name: Date.now().toString(),
       pollInterval: 30000
     },
     prerender: {

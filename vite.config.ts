@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
 import { sveltekit } from '@sveltejs/kit/vite'
 import { defineConfig } from 'vite'
+import path from 'path'
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
@@ -32,5 +33,21 @@ export default defineConfig({
         }
       }
     ]
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'src/app.html'),
+        'service-worker': path.resolve(__dirname, 'src/service-worker.js')
+      },
+      output: {
+        entryFileNames: (chunk) => {
+          // Nur für den SW einen Hash im Dateinamen nutzen
+          return chunk.name === 'service-worker'
+            ? 'service-worker.[hash].js'
+            : '[name].js'
+        }
+      }
+    }
   }
 })
