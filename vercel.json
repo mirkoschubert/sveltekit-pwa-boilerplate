@@ -1,31 +1,12 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "headers": [
     {
       "source": "/service-worker.js",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate, max-age=0"
-        },
-        {
-          "key": "Vercel-CDN-Cache-Control",
-          "value": "no-cache, no-store, must-revalidate, max-age=0"
-        },
-        {
-          "key": "CDN-Cache-Control",
-          "value": "no-cache, no-store, must-revalidate, max-age=0"
-        },
-        {
-          "key": "ETag",
-          "value": ""
-        },
-        {
-          "key": "Last-Modified",
-          "value": ""
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
+          "value": "private, max-age=0"
         }
       ]
     },
@@ -34,11 +15,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate, no-cache, no-store"
+          "value": "public, max-age=0, must-revalidate"
         },
         {
           "key": "Vercel-CDN-Cache-Control",
-          "value": "max-age=0, no-cache, no-store, must-revalidate"
+          "value": "max-age=0, no-cache, must-revalidate"
         },
         {
           "key": "Content-Type",
