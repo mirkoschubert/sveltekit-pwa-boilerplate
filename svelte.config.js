@@ -1,5 +1,12 @@
-import adapter from '@sveltejs/adapter-netlify'
+import netlifyAdapter from '@sveltejs/adapter-netlify'
+import vercelAdapter from '@sveltejs/adapter-vercel'
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte'
+
+// Environment-based adapter selection
+const isVercel = process.env.DEPLOY_TARGET === 'vercel'
+const adapter = isVercel ? vercelAdapter() : netlifyAdapter()
+
+console.log(`🚀 Using ${isVercel ? 'Vercel' : 'Netlify'} adapter`)
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -7,7 +14,7 @@ const config = {
   // for more information about preprocessors
   preprocess: vitePreprocess(),
   kit: {
-    adapter: adapter(),
+    adapter,
     version: {
       // Enable SvelteKit's native service worker polling (30 seconds for testing)
       pollInterval: 30000
