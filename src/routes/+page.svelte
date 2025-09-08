@@ -206,7 +206,7 @@
         </Card.Root>
         <Card.Root class="transition-colors hover:bg-accent">
           <a
-            href="https://svelte.dev/docs/svelte/introduction"
+            href="https://svelte.dev/docs/svelte/overview"
             target="_blank"
             class="block"
           >
